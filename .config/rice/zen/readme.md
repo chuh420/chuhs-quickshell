@@ -1,7 +1,9 @@
-# стили zen
+[english](readme.md) | [русский](readme.ru.md)
 
-браузер использует ту же палитру gruvbox material, что и рабочий стол. `material-chrome.css` задаёт оформление интерфейса, а `material-content.css` оформляет новую вкладку и внутренние страницы.
+# zen styles
 
-в браузерных профилях нужно включить поддержку пользовательских таблиц стилей и подключить эти файлы из папки chrome. образцы подключений и пользовательских настроек сохранены в папке zen соответствующего сетапа dotfiles. пути подключений относятся к пользователю chuh.
+the browser uses the same gruvbox material palette as the desktop. `material-chrome.css` styles the browser interface, and `material-content.css` styles the new tab and internal pages.
 
-после изменения стилей перезапустите браузер. селекторы зависят от версии zen и после обновления могут потребовать изменений.
+enable custom stylesheets in your browser profile and import these files from its chrome directory. example imports and user preferences are included in the zen folder of the corresponding dotfiles setup. import paths refer to the chuh account.
+
+restart the browser after changing styles. selectors depend on the zen version and may need adjustments after browser updates.

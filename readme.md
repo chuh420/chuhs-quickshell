@@ -1,13 +1,15 @@
+[english](readme.md) | [русский](readme.ru.md)
+
 # chuh's quickshell
 
-панель и меню для hyprland на quickshell в цветах gruvbox material. здесь лежат исходники qml, python-помощники, скрипт запуска, обои, стили браузера и пользовательские службы обновления оболочки.
+a quickshell panel and menus for hyprland in gruvbox material colors. this repository contains qml sources, python helpers, a startup script, wallpapers, browser styles and user services for refreshing the shell.
 
-панель показывает рабочие столы, часы, батарею, звук, сеть, bluetooth, раскладку, плеер и трей. есть поиск приложений, календарь, центр управления и галерея обоев. уведомления обслуживает swaync, экран блокировки использует hyprlock, а индикаторы громкости и яркости использует swayosd.
+the panel shows workspaces, a clock, battery status, audio, network, bluetooth, keyboard layout, media controls and a system tray. it includes application search, a calendar, a control center and a wallpaper gallery. swaync handles notifications, hyprlock handles screen locking, and swayosd displays volume and brightness indicators.
 
-каталоги `.config` и `.local` повторяют пути относительно домашнего каталога. скопируйте их содержимое с резервной копией существующих файлов. оболочка запускается командой `quickshell -c material --no-duplicate --daemonize`; полный запуск помощников выполняет `~/.config/rice/start`.
+`.config` and `.local` mirror paths relative to the home directory. back up existing files before copying their contents. start the shell with `quickshell -c material --no-duplicate --daemonize`; `~/.config/rice/start` also launches its helpers.
 
-нужны quickshell с поддержкой hyprland, python, qt, pipewire, wireplumber, bluez, iwd, hyprpaper, hypridle, hyprlock, swaync, swayosd, rofi, wl-clipboard, cliphist, grim, slurp, satty и pavucontrol. сеть на исходной системе обслуживает iwd, разрешение имён выполняет systemd-resolved. системные службы и настройки hyprland хранятся в сетапе dotfiles.
+required tools include quickshell with hyprland support, python, qt, pipewire, wireplumber, bluez, iwd, hyprpaper, hypridle, hyprlock, swaync, swayosd, rofi, wl-clipboard, cliphist, grim, slurp, satty and pavucontrol. the original system uses iwd for networking and systemd-resolved for name resolution. system services and hyprland configuration are stored in the corresponding dotfiles setup.
 
-скрипты содержат пути `/home/chuh`; перед использованием под другим пользователем замените их. обои для галереи добавляются в пользовательскую папку изображений. история буфера обмена и состояние оболочки создаются локально и не включены в репозиторий.
+scripts contain `/home/chuh` paths; replace them when using a different account. add gallery wallpapers to the user's wallpaper directory under pictures. clipboard history and shell state are generated locally and excluded from this repository.
 
-после копирования пользовательских служб выполните `systemctl --user daemon-reload` и `systemctl --user enable --now rice-shell-assets.path`. сочетания клавиш и интеграция с hyprland настраиваются отдельно. документация помощников находится рядом с ними.
+after copying the user services, run `systemctl --user daemon-reload` and `systemctl --user enable --now rice-shell-assets.path`. configure key bindings and hyprland integration separately. helper documentation is stored alongside the helpers.
