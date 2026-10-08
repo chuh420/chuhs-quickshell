@@ -1,0 +1,101 @@
+@-moz-document url("about:newtab"), url("about:home"), url("about:blank") {
+  :root {
+    color-scheme: dark !important;
+    --newtab-background-color: #282828 !important;
+    --background-color-canvas: #282828 !important;
+    --background-color-box: #32302f !important;
+    --card-background-color: #32302f !important;
+    --text-color: #d4be98 !important;
+    --text-color-deemphasized: #928374 !important;
+    --color-accent-primary: #a9b665 !important;
+    --color-accent-primary-hover: #b7c477 !important;
+    --button-background-color-primary: #a9b665 !important;
+    --button-text-color-primary: #282828 !important;
+    --input-background-color: #32302f !important;
+    --input-color: #d4be98 !important;
+    --input-border-color: #504945 !important;
+    --border-color: #504945 !important;
+    --newtab-text-primary-color: #d4be98 !important;
+    --newtab-text-secondary-color: #928374 !important;
+    --newtab-element-secondary-color: #32302f !important;
+    --newtab-element-hover-color: #3c3836 !important;
+    --newtab-primary-action-background: #a9b665 !important;
+    --newtab-primary-action-background-dimmed: #3c4431 !important;
+    --newtab-primary-action-background-active: #96a452 !important;
+    --newtab-primary-element-text-color: #282828 !important;
+    --newtab-border-color: #504945 !important;
+    --newtab-search-first-shadow: #14141422 !important;
+    --newtab-search-second-shadow: #14141422 !important;
+  }
+  body {
+    background: radial-gradient(ellipse at 80% 15%, #a9b6650b, transparent 60%), #282828 !important;
+    color: #d4be98 !important;
+    font-family: "Adwaita Sans", sans-serif !important;
+  }
+  .search-wrapper .search-handoff-button,
+  .search-wrapper input {
+    background-color: #32302f !important;
+    color: #d4be98 !important;
+    border: 1px solid #504945 !important;
+    border-radius: 12px !important;
+  }
+  .search-wrapper .search-handoff-button:focus-within {
+    border-color: #a9b665 !important;
+    outline-color: #a9b665 !important;
+  }
+  .top-site-outer .tile {
+    background-color: #32302f !important;
+    border: 1px solid #504945 !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+  }
+  .top-site-outer:hover {
+    background-color: #3c3836 !important;
+    border-radius: 14px !important;
+  }
+  .logo-and-wordmark {
+    opacity: 0.8 !important;
+  }
+}
+@-moz-document url-prefix("about:preferences"), url-prefix("about:addons"), url-prefix("about:config"), url-prefix("about:downloads"), url-prefix("about:profiles") {
+  :root {
+    color-scheme: dark !important;
+    --in-content-page-background: #282828 !important;
+    --in-content-page-color: #d4be98 !important;
+    --in-content-text-color: #d4be98 !important;
+    --in-content-deemphasized-text: #928374 !important;
+    --in-content-box-background: #32302f !important;
+    --in-content-box-background-odd: #3c3836 !important;
+    --in-content-box-border-color: #504945 !important;
+    --in-content-button-background: #3c3836 !important;
+    --in-content-button-background-hover: #504945 !important;
+    --in-content-button-text-color: #d4be98 !important;
+    --in-content-primary-button-background: #a9b665 !important;
+    --in-content-primary-button-background-hover: #b7c477 !important;
+    --in-content-primary-button-text-color: #282828 !important;
+    --in-content-accent-color: #a9b665 !important;
+    --in-content-link-color: #a9b665 !important;
+    --in-content-link-color-hover: #d8a657 !important;
+    --color-accent-primary: #a9b665 !important;
+    --color-accent-primary-hover: #b7c477 !important;
+    --color-accent-primary-active: #96a452 !important;
+    --background-color-canvas: #282828 !important;
+    --background-color-box: #32302f !important;
+    --text-color: #d4be98 !important;
+    --border-color: #504945 !important;
+    --focus-outline-color: #a9b665 !important;
+    --zen-primary-color: #a9b665 !important;
+    --zen-colors-tertiary: #282828 !important;
+    --zen-colors-primary: #32302f !important;
+    --zen-colors-secondary: #3c3836 !important;
+    --zen-colors-primary-foreground: #d4be98 !important;
+    --zen-colors-border: #504945 !important;
+    --zen-branding-bg: #282828 !important;
+    --zen-branding-bg-reverse: #d4be98 !important;
+  }
+  body {
+    background-color: #282828 !important;
+    color: #d4be98 !important;
+    font-family: "Adwaita Sans", sans-serif !important;
+  }
+}

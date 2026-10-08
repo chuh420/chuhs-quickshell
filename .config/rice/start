@@ -1,0 +1,8 @@
+#!/bin/bash
+python /home/chuh/.config/rice/wallpapers.py restore
+quickshell -c material --no-duplicate --daemonize
+pgrep -x hyprpaper >/dev/null || hyprpaper >/dev/null 2>&1 &
+pgrep -x hypridle >/dev/null || hypridle >/dev/null 2>&1 &
+pgrep -x swaync >/dev/null || swaync >/dev/null 2>&1 &
+pgrep -x swayosd-server >/dev/null || swayosd-server >/dev/null 2>&1 &
+pgrep -f '^wl-paste --watch python /home/chuh/.config/rice/clipboard.py' >/dev/null || wl-paste --watch python /home/chuh/.config/rice/clipboard.py >/dev/null 2>&1 &

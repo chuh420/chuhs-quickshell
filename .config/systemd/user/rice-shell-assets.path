@@ -1,0 +1,13 @@
+[Unit]
+Description=Watch application and icon assets
+
+[Path]
+PathChanged=/usr/share/icons/hicolor/icon-theme.cache
+PathChanged=/usr/share/icons
+PathChanged=/usr/share/applications
+PathChanged=/home/chuh/.local/share/icons
+PathChanged=/home/chuh/.local/share/applications
+Unit=rice-shell-assets.service
+
+[Install]
+WantedBy=default.target

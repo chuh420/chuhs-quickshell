@@ -1,0 +1,22 @@
+#!/bin/bash
+case "$1" in
+    launcher) quickshell -c material ipc call shell launcher ;;
+    menu) quickshell -c material ipc call shell menu ;;
+    notifications) quickshell -c material ipc call shell close; swaync-client -t ;;
+    volume-up) swayosd-client --max-volume 100 --output-volume raise ;;
+    volume-down) swayosd-client --output-volume lower ;;
+    volume-mute) swayosd-client --output-volume mute-toggle ;;
+    microphone-mute) swayosd-client --input-volume mute-toggle ;;
+    brightness-key-up) swayosd-client --brightness +5 ;;
+    brightness-key-down) swayosd-client --min-brightness 5 --brightness -5 ;;
+    audio) pavucontrol ;;
+    network) quickshell -c material ipc call shell wifi ;;
+    bluetooth) quickshell -c material ipc call shell bluetooth ;;
+    clipboard) quickshell -c material ipc call shell close; cliphist list | rofi -dmenu -p 'Clipboard' | cliphist decode | wl-copy ;;
+    lock) quickshell -c material ipc call shell close; pidof hyprlock >/dev/null || hyprlock ;;
+    suspend) systemctl suspend ;;
+    power) quickshell -c material ipc call shell close; choice=$(printf 'Lock\nSleep\nRestart\nPower off' | rofi -dmenu -p 'Session'); case "$choice" in Lock) "$0" lock ;; Sleep) systemctl suspend ;; Restart) systemctl reboot ;; "Power off") systemctl poweroff ;; esac ;;
+    screenshot) quickshell -c material ipc call shell close; region=$(slurp -b '#1d2021cc' -c '#a9b665' -w 2) || exit; mkdir -p "$HOME/Pictures/Screenshots"; file="$HOME/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png"; grim -g "$region" "$file" && satty --filename "$file" --copy-command wl-copy ;;
+    screenshot-output) mkdir -p "$HOME/Pictures/Screenshots"; file="$HOME/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png"; grim "$file" && wl-copy < "$file" ;;
+    wallpaper) quickshell -c material ipc call shell wallpapers ;;
+esac

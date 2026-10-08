@@ -1,0 +1,187 @@
+:root {
+  color-scheme: dark !important;
+  --zen-primary-color: #a9b665 !important;
+  --zen-colors-primary: #32302f !important;
+  --zen-colors-secondary: #3c3836 !important;
+  --zen-colors-tertiary: #282828 !important;
+  --zen-colors-primary-foreground: #d4be98 !important;
+  --zen-colors-hover-bg: #504945 !important;
+  --zen-colors-input-bg: #32302f !important;
+  --zen-colors-border: #504945 !important;
+  --zen-colors-border-contrast: #504945 !important;
+  --zen-main-browser-background: #282828 !important;
+  --zen-main-browser-background-toolbar: #282828 !important;
+  --zen-navigator-toolbox-background: #282828 !important;
+  --zen-dialog-background: #32302f !important;
+  --zen-in-content-dialog-background: #32302f !important;
+  --zen-urlbar-background: #32302f !important;
+  --zen-urlbar-background-base: #32302f !important;
+  --zen-toolbar-element-bg: #3c3836 !important;
+  --zen-toolbar-element-bg-hover: #504945 !important;
+  --zen-selected-bg: #3c4431 !important;
+  --zen-selected-color: #a9b665 !important;
+  --zen-essential-tab-selected-bg: #3c4431 !important;
+  --zen-essential-tab-selected-bg-hover: #454e36 !important;
+  --zen-loading-progress-bar-color: #a9b665 !important;
+  --zen-border-radius: 9px !important;
+  --zen-native-inner-radius: 10px !important;
+  --zen-webview-border-radius: 10px !important;
+  --zen-element-separation: 6px !important;
+  --toolbar-bgcolor: #282828 !important;
+  --toolbar-color: #d4be98 !important;
+  --toolbox-textcolor: #d4be98 !important;
+  --lwt-text-color: #d4be98 !important;
+  --lwt-accent-color: #282828 !important;
+  --lwt-toolbar-field-background-color: #32302f !important;
+  --lwt-toolbar-field-color: #d4be98 !important;
+  --lwt-toolbar-field-border-color: #504945 !important;
+  --lwt-toolbar-field-focus: #32302f !important;
+  --lwt-toolbar-field-focus-color: #d4be98 !important;
+  --toolbarbutton-hover-background: #3c3836 !important;
+  --toolbarbutton-active-background: #504945 !important;
+  --tab-selected-bgcolor: #3c4431 !important;
+  --tab-selected-textcolor: #d4be98 !important;
+  --tab-hover-background-color: #32302f !important;
+  --panel-background: #32302f !important;
+  --panel-color: #d4be98 !important;
+  --panel-border-color: #504945 !important;
+  --arrowpanel-background: #32302f !important;
+  --arrowpanel-color: #d4be98 !important;
+  --arrowpanel-border-color: #504945 !important;
+  --arrowpanel-dimmed: #3c3836 !important;
+  --arrowpanel-dimmed-further: #504945 !important;
+  --urlbarView-highlight-background: #3c4431 !important;
+  --urlbarView-highlight-color: #d4be98 !important;
+  --urlbarView-hover-background: #3c3836 !important;
+  --urlbarView-secondary-text-color: #928374 !important;
+  --autocomplete-popup-highlight-background: #3c4431 !important;
+  --autocomplete-popup-highlight-color: #d4be98 !important;
+  --focus-outline-color: #a9b665 !important;
+  --color-accent-primary: #a9b665 !important;
+  --color-accent-primary-hover: #b7c477 !important;
+  --color-accent-primary-active: #96a452 !important;
+  --button-background-color-primary: #a9b665 !important;
+  --button-text-color-primary: #282828 !important;
+  --button-primary-color: #282828 !important;
+  --button-primary-hover-bgcolor: #b7c477 !important;
+  --link-color: #a9b665 !important;
+  --link-color-hover: #d8a657 !important;
+  --attention-dot-color: #d8a657 !important;
+  --zen-folder-stroke: #d8a657 !important;
+  --zen-folder-front-bgcolor: #504945 !important;
+  --zen-folder-behind-bgcolor: #3c3836 !important;
+  font-family: "Adwaita Sans", sans-serif !important;
+  font-size: 12px !important;
+}
+#zen-main-app-wrapper,
+#zen-appcontent-wrapper,
+#navigator-toolbox,
+#TabsToolbar,
+#nav-bar,
+#PersonalToolbar,
+#zen-sidebar-top-buttons,
+#zen-sidebar-foot-buttons {
+  background: #282828 !important;
+  color: #d4be98 !important;
+}
+#zen-main-app-wrapper {
+  background-image: none !important;
+}
+.tabbrowser-tab .tab-background {
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  transition: background-color 140ms ease !important;
+}
+.tabbrowser-tab:is([selected], [visuallyselected]) .tab-background {
+  background: #3c4431 !important;
+  box-shadow: inset 2px 0 #a9b665 !important;
+}
+.tabbrowser-tab:not([selected], [visuallyselected]):hover .tab-background {
+  background: #32302f !important;
+}
+.tabbrowser-tab:is([selected], [visuallyselected]) .tab-label {
+  color: #d4be98 !important;
+  font-weight: 600 !important;
+}
+.tab-label {
+  color: #bdae93 !important;
+}
+#urlbar-background {
+  background: #32302f !important;
+  border: 1px solid #504945 !important;
+  border-radius: 10px !important;
+}
+#urlbar[focused] #urlbar-background {
+  border-color: #a9b665 !important;
+  box-shadow: 0 8px 28px #14141455 !important;
+}
+#urlbar-input {
+  color: #d4be98 !important;
+  font-family: "Adwaita Sans", sans-serif !important;
+}
+.urlbarView-url {
+  color: #89b482 !important;
+}
+.urlbarView-row[selected] .urlbarView-row-inner {
+  border-radius: 8px !important;
+}
+panel, menupopup {
+  --panel-background: #32302f !important;
+  --panel-color: #d4be98 !important;
+  --panel-border-color: #504945 !important;
+  --panel-border-radius: 12px !important;
+  color-scheme: dark !important;
+}
+menuitem, menu {
+  color: #d4be98 !important;
+}
+menuitem[_moz-menuactive], menu[_moz-menuactive] {
+  background-color: #3c4431 !important;
+  color: #d4be98 !important;
+}
+findbar {
+  background: #32302f !important;
+  color: #d4be98 !important;
+  border-top: 1px solid #504945 !important;
+}
+.findbar-textbox {
+  background: #282828 !important;
+  color: #d4be98 !important;
+  border: 1px solid #504945 !important;
+  border-radius: 7px !important;
+}
+::selection {
+  background: #a9b665 !important;
+  color: #282828 !important;
+}
+:root {
+  --zen-branding-bg: #282828 !important;
+  --zen-branding-bg-reverse: #d4be98 !important;
+  --zen-grainy-background-opacity: 0 !important;
+  --input-color: #d4be98 !important;
+  --input-background-color: #32302f !important;
+}
+.urlbar {
+  --zen-urlbar-background-base: #32302f !important;
+  --zen-urlbar-background-transparent: #32302f !important;
+  --urlbarview-separator-color: #504945 !important;
+  --urlbarview-background-color-hover: #3c3836 !important;
+  color: #d4be98 !important;
+}
+:root .urlbar .urlbar-background {
+  background: #32302f !important;
+  border: 1px solid #504945 !important;
+  border-radius: 12px !important;
+  outline: none !important;
+  box-shadow: 0 12px 40px #14141455 !important;
+}
+:root .urlbar .urlbar-input,
+:root .urlbar .urlbarView-title {
+  color: #d4be98 !important;
+}
+:root .urlbar .urlbarView-row[selected] .urlbarView-row-inner {
+  background: #3c4431 !important;
+}
+.zen-browser-grain {
+  display: none !important;
+}

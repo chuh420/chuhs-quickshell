@@ -1,0 +1,9 @@
+singleton Theme 1.0 Theme.qml
+Chip 1.0 Chip.qml
+WifiPanel 1.0 WifiPanel.qml
+BluetoothPanel 1.0 BluetoothPanel.qml
+AudioPanel 1.0 AudioPanel.qml
+BatteryPanel 1.0 BatteryPanel.qml
+PanelLabel 1.0 PanelLabel.qml
+MaterialSlider 1.0 MaterialSlider.qml
+BindToolTip 1.0 BindToolTip.qml

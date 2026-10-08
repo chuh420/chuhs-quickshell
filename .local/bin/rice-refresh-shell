@@ -1,0 +1,4 @@
+#!/bin/bash
+sleep 1
+quickshell -c material kill >/dev/null 2>&1 || exit 0
+hyprctl eval 'hl.exec_cmd("quickshell -c material --no-duplicate --daemonize")' >/dev/null
