@@ -1,6 +1,7 @@
 #!/bin/bash
 python /home/chuh/.config/rice/wallpapers.py restore
-quickshell -c material --no-duplicate --daemonize
+systemctl --user import-environment WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE
+systemctl --user start rice-quickshell.service
 pgrep -x hyprpaper >/dev/null || hyprpaper >/dev/null 2>&1 &
 pgrep -x hypridle >/dev/null || hypridle >/dev/null 2>&1 &
 pgrep -x swaync >/dev/null || swaync >/dev/null 2>&1 &

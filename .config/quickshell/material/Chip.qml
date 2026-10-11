@@ -4,6 +4,7 @@ Rectangle {
     id: root
     property bool compact: false
     property int fontSize: compact ? 11 : 12
+    property int iconSize: fontSize
     property string label
     property color ink: Theme.text
     property bool selected: false
@@ -16,7 +17,7 @@ Rectangle {
     radius: compact ? 6 : 10
     color: selected ? Theme.elevated : mouse.containsMouse ? Theme.elevated : "transparent"
     Behavior on color { ColorAnimation { duration: 140 } }
-    Text { id: text; anchors.centerIn: parent; text: root.label; color: root.ink; font.family: Theme.icons; font.pixelSize: root.fontSize }
+    Text { id: text; anchors.centerIn: parent; text: Array.from(root.label).map(value => value.codePointAt(0) >= 0xe000 ? '<span style="font-size: ' + root.iconSize + 'px">' + value + '</span>' : value === '&' ? '&amp;' : value === '<' ? '&lt;' : value === '>' ? '&gt;' : value).join(""); textFormat: Text.RichText; color: root.ink; font.family: Theme.icons; font.pixelSize: root.fontSize }
     BindToolTip {
         text: root.shortcut
         below: root.compact

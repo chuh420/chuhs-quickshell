@@ -7,12 +7,12 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Services.SystemTray
 import Quickshell.Services.Pipewire
-import Quickshell.Services.Mpris
 import Quickshell.Bluetooth
 
 ShellRoot {
     id: root
     property string panel: ""
+    property bool keepAwake: false
     property var hiddenApplications: []
     FileView {
         id: hiddenApplicationsFile
@@ -33,6 +33,8 @@ ShellRoot {
         hiddenApplicationsFile.setText(JSON.stringify(hiddenApplications) + "\n")
     }
     property var wifi: ({powered: false, networks: [], state: "", scanning: false, busy: false, message: ""})
+    readonly property bool networkConnected: Boolean(wifi.connected || stats.connected)
+    readonly property string networkName: wifi.connected ? wifi.network : stats.network
     property string wifiPrompt: ""
     property var bluetoothPrompt: ({name: "", mode: "", value: ""})
     property real moduleX: 0
@@ -48,7 +50,7 @@ ShellRoot {
             onRead: data => {
                 try {
                     const value = JSON.parse(data)
-                    if (value.kind === "state") root.wifi = value
+                    if (value.kind === "state" && JSON.stringify(value) !== JSON.stringify(root.wifi)) root.wifi = value
                     else if (value.kind === "bluetooth-prompt") { root.bluetoothPrompt = value; if (value.name) root.panel = "bluetooth" }
                     else if (value.kind === "prompt") { root.wifiPrompt = value.name; if (value.name) root.panel = "wifi" }
                 } catch(e) {}
@@ -91,6 +93,8 @@ ShellRoot {
     property string currentWallpaper: ""
     property string wallpaperError: ""
     onPanelChanged: {
+        wifiCommand({action: "panel", visible: panel === "wifi"})
+        if (status.running) status.write(JSON.stringify({detailed: panel === "battery"}) + "\n")
         if (panel === "wallpapers" && !wallpaperScan.running) { wallpaperError = ""; wallpaperScan.running = true }
         if (panel === "wifi" && wifi.powered && !wifi.scanning && !wifi.busy) wifiCommand({action: "scan"})
         if (panel !== "bluetooth" && bluetoothPrompt.name) wifiCommand({action: "bluetooth-reply", accepted: false})
@@ -120,10 +124,24 @@ ShellRoot {
             else if (!root.wallpaperError) root.wallpaperError = "Could not apply wallpaper"
         }
     }
+    property var resources: ({cpu: null, ramUsed: 0, ramTotal: 0})
+    Process {
+        id: resourceMonitor
+        command: ["python", "/home/chuh/.config/rice/resources.py"]
+        running: true
+        stdout: SplitParser {
+            onRead: data => {
+                try {
+                    const value = JSON.parse(data)
+                    if (value.cpu !== root.resources.cpu || value.ramUsed.toFixed(1) !== root.resources.ramUsed.toFixed(1) || value.ramTotal !== root.resources.ramTotal) root.resources = value
+                }
+                catch(e) { console.warn("Could not read resource usage:", e) }
+            }
+        }
+    }
     property var stats: ({battery: 0, present: false, charging: false, network: "Offline", connected: false, brightness: 50})
     property var sink: Pipewire.defaultAudioSink
     property var adapter: Bluetooth.defaultAdapter
-    property var player: Mpris.players.values.length ? Mpris.players.values[0] : null
     property int volume: sink && sink.audio ? Math.round(sink.audio.volume * 100) : 0
     property bool muted: sink && sink.audio ? sink.audio.muted : true
     function run(action) { Quickshell.execDetached(["/home/chuh/.local/bin/chuhshell", action]) }
@@ -132,11 +150,18 @@ ShellRoot {
     SystemClock { id: clock; precision: SystemClock.Minutes }
     Process {
         id: status
-        command: ["python", "/home/chuh/.config/rice/status.py"]
+        command: ["python", "/home/chuh/.config/rice/status.py", "watch"]
         running: true
-        stdout: StdioCollector { onStreamFinished: { try { root.stats = JSON.parse(text) } catch(e) {} } }
+        stdinEnabled: true
+        stdout: SplitParser {
+            onRead: data => {
+                try {
+                    const value = JSON.parse(data)
+                    if (JSON.stringify(value) !== JSON.stringify(root.stats)) root.stats = value
+                } catch(e) { console.warn("Could not read system status:", e) }
+            }
+        }
     }
-    Timer { interval: 5000; running: true; repeat: true; onTriggered: if (!status.running) status.running = true }
     IpcHandler {
         target: "shell"
         function launcher(): void { root.toggle("launcher") }
@@ -153,6 +178,7 @@ ShellRoot {
         model: Quickshell.screens
         PanelWindow {
             id: bar
+            IdleInhibitor { window: bar; enabled: root.keepAwake }
             required property var modelData
             screen: modelData
             anchors { top: true; left: true; right: true }
@@ -172,14 +198,15 @@ ShellRoot {
                 RowLayout {
                     anchors { left: parent.left; leftMargin: 5; verticalCenter: parent.verticalCenter }
                     spacing: 3
-                    Chip { compact: true; label: "󰣇"; ink: Theme.green; onClicked: root.toggle("launcher") }
+                    Chip { compact: true; iconSize: 13; label: "󰣇"; ink: Theme.green; onClicked: root.toggle("launcher") }
                     Rectangle { width: 1; height: 12; color: Theme.line; Layout.leftMargin: 4; Layout.rightMargin: 6 }
                     Repeater {
                         model: [1, 2, 3, 4, 5].concat(Hyprland.workspaces.values.filter(w => w.id > 5).map(w => w.id).sort((a,b) => a-b))
-                        Chip { compact: true;
+                        Chip { compact: true; iconSize: 13;
                             required property int modelData
                             property int workspaceId: modelData
                             property bool active: Hyprland.focusedMonitor && Hyprland.focusedMonitor.activeWorkspace && Hyprland.focusedMonitor.activeWorkspace.id === workspaceId
+                            fontSize: active ? 11 : 13
                             property bool occupied: Hyprland.workspaces.values.some(w => w.id === workspaceId)
                             shortcut: "Super + " + workspaceId
                             label: active ? "0" + (workspaceId) : occupied ? "●" : "○"
@@ -200,7 +227,7 @@ ShellRoot {
                         Layout.leftMargin: 12
                     }
                 }
-                Chip { compact: true;
+                Chip { compact: true; iconSize: 13;
                     anchors.centerIn: parent
                     label: clock.date.toLocaleString(Qt.locale("en_US"), "ddd, d MMM  ·  HH:mm")
                     ink: Theme.text
@@ -217,7 +244,7 @@ ShellRoot {
                             Image {
                                 id: trayIcon
                                 anchors.centerIn: parent
-                                width: 15; height: 15
+                                width: 17; height: 17
                                 source: modelData.icon
                                 visible: source.toString() !== "" && status !== Image.Error
                             }
@@ -227,7 +254,7 @@ ShellRoot {
                                 text: "󰀻"
                                 color: Theme.muted
                                 font.family: Theme.icons
-                                font.pixelSize: 14
+                                font.pixelSize: 16
                             }
                             MouseArea {
                                 anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -244,8 +271,25 @@ ShellRoot {
                             }
                         }
                     }
+                    Text {
+                        textFormat: Text.RichText
+                        text: '<span style="font-size: 12px">󰻠</span> ' + (root.resources.cpu === null ? "…" : root.resources.cpu + "%")
+                        color: Theme.text
+                        font.family: Theme.icons
+                        font.pixelSize: 10
+                        Layout.preferredWidth: 53
+                        Layout.leftMargin: 6
+                    }
+                    Text {
+                        textFormat: Text.RichText
+                        text: '<span style="font-size: 12px">󰍛</span> ' + (root.resources.ramTotal > 0 ? root.resources.ramUsed.toFixed(1) + " GiB" : "…")
+                        color: Theme.text
+                        font.family: Theme.icons
+                        font.pixelSize: 10
+                        Layout.preferredWidth: 78
+                    }
                     Rectangle {
-                        implicitWidth: 47
+                        implicitWidth: 49
                         implicitHeight: 22
                         radius: 6
                         color: keyboardHover.containsMouse ? Theme.elevated : "transparent"
@@ -255,8 +299,8 @@ ShellRoot {
                             spacing: 5
                             Image {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 14
-                                height: 10
+                                width: 16
+                                height: 12
                                 source: "file:///home/chuh/.config/rice/icons/keyboard-bar.svg"
                             }
                             Text {
@@ -274,13 +318,13 @@ ShellRoot {
                             onClicked: Quickshell.execDetached(["python", "/home/chuh/.config/rice/keyboard.py", "next"])
                         }
                     }
-                    Chip { id: networkChip; compact: true; label: root.stats.connected ? "󰤨" : "󰤭"; ink: root.stats.connected ? Theme.green : Theme.muted; onClicked: root.openModule("wifi", networkChip) }
-                    Chip { id: bluetoothChip; compact: true; label: "󰂯"; ink: root.adapter && root.adapter.enabled ? Theme.green : Theme.muted; onClicked: root.openModule("bluetooth", bluetoothChip) }
-                    Chip { id: audioChip; compact: true; label: root.muted ? "󰖁" : "󰕾"; shortcut: "XF86AudioRaiseVolume / XF86AudioLowerVolume / XF86AudioMute"; onClicked: root.openModule("audio", audioChip); onRightClicked: root.run("volume-mute"); onScrolled: delta => root.run(delta > 0 ? "volume-up" : "volume-down") }
-                    Chip { id: batteryChip; compact: true; visible: root.stats.present; label: (root.stats.charging ? "󰂄 " : "󰁹 ") + root.stats.battery + "%"; ink: root.stats.battery < 20 ? Theme.red : Theme.text; onClicked: root.openModule("battery", batteryChip) }
+                    Chip { id: networkChip; compact: true; iconSize: 13; label: root.networkConnected ? "󰤨" : "󰤭"; ink: root.networkConnected ? Theme.green : Theme.muted; onClicked: root.openModule("wifi", networkChip) }
+                    Chip { id: bluetoothChip; compact: true; iconSize: 13; label: "󰂯"; ink: root.adapter && root.adapter.enabled ? Theme.green : Theme.muted; onClicked: root.openModule("bluetooth", bluetoothChip) }
+                    Chip { id: audioChip; compact: true; iconSize: 13; label: root.muted ? "󰖁" : "󰕾"; shortcut: "XF86AudioRaiseVolume / XF86AudioLowerVolume / XF86AudioMute"; onClicked: root.openModule("audio", audioChip); onRightClicked: root.run("volume-mute"); onScrolled: delta => root.run(delta > 0 ? "volume-up" : "volume-down") }
+                    Chip { id: batteryChip; compact: true; iconSize: 13; visible: root.stats.present; label: (root.stats.charging ? "󰂄 " : "󰁹 ") + root.stats.battery + "%"; ink: root.stats.battery < 20 ? Theme.red : Theme.text; onClicked: root.openModule("battery", batteryChip) }
                     Rectangle { width: 1; height: 12; color: Theme.line; Layout.leftMargin: 5; Layout.rightMargin: 5 }
-                    Chip { compact: true; label: "󰂚"; shortcut: "Super + N"; ink: Theme.yellow; onClicked: root.run("notifications") }
-                    Chip { compact: true; label: "󰒓"; shortcut: "Super + Space"; ink: Theme.green; onClicked: root.toggle("control") }
+                    Chip { compact: true; iconSize: 13; label: "󰂚"; shortcut: "Super + N"; ink: Theme.yellow; onClicked: root.run("notifications") }
+                    Chip { compact: true; iconSize: 13; label: "󰒓"; shortcut: "Super + Space"; ink: Theme.green; onClicked: root.toggle("control") }
                 }
             }
         }
@@ -312,12 +356,12 @@ ShellRoot {
             scale: Theme.uiScale
             transformOrigin: Item.TopLeft
             width: root.modulePanel ? 350 : root.panel === "tray" ? 240 : root.panel === "wallpapers" ? Math.min(720, (parent.width - 28) / Theme.uiScale) : root.panel === "launcher" ? 560 : 370
-            height: root.modulePanel ? Math.min((parent.height - 70) / Theme.uiScale, root.panel === "battery" ? 350 : root.panel === "audio" ? 370 : root.panel === "wifi" && root.wifiPrompt ? 535 : 420) : root.panel === "tray" ? 180 : root.panel === "wallpapers" ? Math.min(480, (parent.height - 88) / Theme.uiScale) : root.panel === "launcher" ? 478 : root.panel === "calendar" ? 410 : 610
+            height: root.modulePanel ? Math.min((parent.height - 70) / Theme.uiScale, root.panel === "battery" ? 350 : root.panel === "audio" ? 370 : root.panel === "wifi" && root.wifiPrompt ? 535 : 420) : root.panel === "tray" ? 180 : root.panel === "wallpapers" ? Math.min(480, (parent.height - 88) / Theme.uiScale) : root.panel === "launcher" ? 478 : root.panel === "calendar" ? 410 : 520
             x: root.modulePanel ? Math.min(Math.max(14, root.moduleX ? root.moduleX - width * scale / 2 : parent.width - width * scale - 14), parent.width - width * scale - 14) : root.panel === "tray" ? Math.min(Math.max(14, root.trayX - width * scale / 2), parent.width - width * scale - 14) : root.panel === "launcher" || root.panel === "wallpapers" ? (parent.width - width * scale) / 2 : parent.width - width * scale - 14
             y: root.panel === "launcher" || root.panel === "wallpapers" ? Math.min(130, (parent.height - height * scale) / 2) : Math.ceil(44 * Theme.uiScale)
             color: Theme.bg; radius: root.modulePanel ? 14 : 22; border.color: Theme.line
             MouseArea { anchors.fill: parent }
-            Loader { anchors.fill: parent; anchors.margins: root.modulePanel ? 18 : 24; sourceComponent: root.panel === "wifi" ? wifiView : root.panel === "bluetooth" ? bluetoothView : root.panel === "audio" ? audioView : root.panel === "battery" ? batteryView : root.panel === "tray" ? trayMenu : root.panel === "wallpapers" ? wallpaperPicker : root.panel === "launcher" ? launcher : root.panel === "calendar" ? calendar : control }
+            Loader { active: root.panel !== ""; anchors.fill: parent; anchors.margins: root.modulePanel ? 18 : 24; sourceComponent: root.panel === "wifi" ? wifiView : root.panel === "bluetooth" ? bluetoothView : root.panel === "audio" ? audioView : root.panel === "battery" ? batteryView : root.panel === "tray" ? trayMenu : root.panel === "wallpapers" ? wallpaperPicker : root.panel === "launcher" ? launcher : root.panel === "calendar" ? calendar : control }
         }
         
         }
@@ -472,7 +516,7 @@ ShellRoot {
     Component {
         id: control
         ColumnLayout {
-            spacing: 16
+            spacing: 14
             RowLayout {
                 Text { text: "Control center"; font.family: Theme.font; font.pixelSize: 21; color: Theme.text; Layout.fillWidth: true }
                 Chip { fontSize: 18; label: "󰒲"; shortcut: "Super + Ctrl + L"; ink: Theme.yellow; onClicked: root.run("lock") }
@@ -485,8 +529,8 @@ ShellRoot {
                     Text { text: "󰤨"; color: Theme.green; font.family: Theme.icons; font.pixelSize: 22; Layout.preferredWidth: 28; horizontalAlignment: Text.AlignHCenter }
                     ColumnLayout {
                         Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: 4
-                        Text { text: root.stats.network; color: Theme.text; font.family: Theme.font; font.pixelSize: 13; elide: Text.ElideRight; Layout.fillWidth: true }
-                        Text { text: root.stats.connected ? "Connected" : "Disconnected"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 10; Layout.fillWidth: true }
+                        Text { text: root.networkName; color: Theme.text; font.family: Theme.font; font.pixelSize: 13; elide: Text.ElideRight; Layout.fillWidth: true }
+                        Text { text: root.networkConnected ? "Connected" : "Disconnected"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 10; Layout.fillWidth: true }
                     }
                     Chip { fontSize: 18; label: "↗"; ink: Theme.green; onClicked: root.toggle("wifi") }
                 }
@@ -513,18 +557,12 @@ ShellRoot {
                 shortcut: "XF86MonBrightnessUp / XF86MonBrightnessDown"
                 onMoved: Quickshell.execDetached(["brightnessctl", "set", Math.round(value) + "%"])
             }
-            Rectangle {
-                Layout.fillWidth: true; height: 72; radius: 14; color: Theme.surface
-                RowLayout {
-                    anchors.fill: parent; anchors.margins: 12
-                    ColumnLayout { Layout.fillWidth: true; spacing: 5
-                        Text { text: root.player ? root.player.trackTitle || "Media player" : "A quiet moment"; color: Theme.text; font.family: Theme.font; elide: Text.ElideRight; Layout.maximumWidth: 220 }
-                        Text { text: root.player ? root.player.trackArtist || root.player.identity : "Your music will appear here"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 10 }
-                    }
-                    Chip { fontSize: 20; label: root.player && root.player.isPlaying ? "󰏤" : "󰐊"; shortcut: "XF86AudioPlay"; ink: Theme.green; onClicked: if(root.player) root.player.togglePlaying() }
-                }
+            RowLayout {
+                spacing: 10
+                Text { text: "󰅶"; color: root.keepAwake ? Theme.green : Theme.muted; font.family: Theme.icons; font.pixelSize: 20 }
+                Text { text: "Keep awake"; color: Theme.text; font.family: Theme.font; font.pixelSize: 12; Layout.fillWidth: true }
+                Chip { label: root.keepAwake ? "ON" : "OFF"; selected: root.keepAwake; ink: root.keepAwake ? Theme.green : Theme.muted; shortcut: "Prevent automatic locking and screen sleep"; onClicked: root.keepAwake = !root.keepAwake }
             }
-            Item { Layout.fillHeight: true }
             RowLayout {
                 spacing: 7
                 Chip { fontSize: 18; label: "󰂚"; shortcut: "Super + N"; onClicked: root.run("notifications") }

@@ -1,0 +1,8 @@
+[Unit]
+Description=Quickshell desktop shell
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/quickshell -c material --no-duplicate
+Restart=on-failure
+RestartSec=2

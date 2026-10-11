@@ -13,6 +13,9 @@ pending = None
 busy = False
 message = ''
 bluetooth_pending = None
+last_state = None
+refresh_source = None
+panel_source = None
 
 def emit(data):
     print(json.dumps(data), flush=True)
@@ -23,16 +26,17 @@ def iface(path, name):
 def objects():
     return dbus.Interface(bus.get_object(service, '/'), 'org.freedesktop.DBus.ObjectManager').GetManagedObjects()
 
-def station():
-    for path, interfaces in objects().items():
+def station(managed=None):
+    for path, interfaces in (objects() if managed is None else managed).items():
         if 'net.connman.iwd.Device' in interfaces:
             return str(path), interfaces
     raise RuntimeError('No Wi-Fi adapter found')
 
 def refresh():
+    global last_state
     try:
         managed = objects()
-        path, interfaces = station()
+        path, interfaces = station(managed)
         dev = interfaces['net.connman.iwd.Device']
         sta = interfaces.get('net.connman.iwd.Station', {})
         networks = []
@@ -45,10 +49,37 @@ def refresh():
             props = entry.get('net.connman.iwd.KnownNetwork')
             if props and str(known) not in seen:
                 networks.append(dict(path='', name=str(props['Name']), strength=0, security=str(props['Type']), connected=False, saved=True, known=str(known), available=False))
-        emit(dict(kind='state', powered=bool(dev.get('Powered')), state=str(sta.get('State', 'off')), scanning=bool(sta.get('Scanning', False)), networks=networks, busy=busy, message=message, device=str(dev['Name'])))
+        connected_path = sta.get('ConnectedNetwork')
+        connected_props = managed.get(connected_path, {}).get('net.connman.iwd.Network', {})
+        connected = bool(dev.get('Powered')) and str(sta.get('State', '')) == 'connected'
+        network = str(connected_props.get('Name', next((item['name'] for item in networks if item['connected']), 'Wi-Fi'))) if connected else 'Offline'
+        state = dict(kind='state', powered=bool(dev.get('Powered')), state=str(sta.get('State', 'off')), scanning=bool(sta.get('Scanning', False)), networks=networks, busy=busy, message=message, device=str(dev['Name']), connected=connected, network=network)
     except Exception as error:
-        emit(dict(kind='state', powered=False, state='unavailable', scanning=False, networks=[], busy=busy, message=str(error), device=''))
+        state = dict(kind='state', powered=False, state='unavailable', scanning=False, networks=[], busy=busy, message=str(error), device='', connected=False, network='Offline')
+    if state != last_state:
+        emit(state)
+        last_state = state
     return True
+
+def flush_refresh():
+    global refresh_source
+    refresh_source = None
+    refresh()
+    return False
+
+def queue_refresh(*args):
+    global refresh_source
+    if refresh_source is None:
+        refresh_source = GLib.timeout_add(150, flush_refresh)
+
+def set_panel_visible(visible):
+    global panel_source
+    if visible and panel_source is None:
+        panel_source = GLib.timeout_add_seconds(10, refresh)
+        queue_refresh()
+    elif not visible and panel_source is not None:
+        GLib.source_remove(panel_source)
+        panel_source = None
 
 def finish(*args):
     global busy, message
@@ -150,6 +181,9 @@ def command(source, condition):
     try:
         data = json.loads(line)
         action = data['action']
+        if action == 'panel':
+            set_panel_visible(bool(data.get('visible')))
+            return True
         message = ''
         if action == 'bluetooth-reply':
             if bluetooth_pending:
@@ -199,6 +233,10 @@ def command(source, condition):
 
 loop = GLib.MainLoop()
 GLib.io_add_watch(sys.stdin, GLib.IO_IN | GLib.IO_HUP, command)
-GLib.timeout_add_seconds(3, refresh)
+bus.add_signal_receiver(queue_refresh, signal_name='PropertiesChanged', dbus_interface='org.freedesktop.DBus.Properties', bus_name=service)
+bus.add_signal_receiver(queue_refresh, signal_name='InterfacesAdded', dbus_interface='org.freedesktop.DBus.ObjectManager', bus_name=service)
+bus.add_signal_receiver(queue_refresh, signal_name='InterfacesRemoved', dbus_interface='org.freedesktop.DBus.ObjectManager', bus_name=service)
+bus.add_signal_receiver(queue_refresh, signal_name='NameOwnerChanged', dbus_interface='org.freedesktop.DBus', arg0=service)
+GLib.timeout_add_seconds(60, refresh)
 refresh()
 loop.run()
