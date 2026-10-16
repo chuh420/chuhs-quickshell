@@ -1,0 +1,55 @@
+part Control {
+    group { show: panel == 2
+        text "desktop / control" { at: 0, 0; size: 11; family: "JetBrainsMono Nerd Font Mono"; color: sage; letter_move: letter * 1.3, 0 }
+        text clock.time { at: -2, 22; size: 48; weight: 300; family: "Adwaita Sans"; color: panel_ink }
+        text long_date { at: 0, 86; size: 14; family: "Adwaita Sans"; color: panel_muted }
+        IconChip("󰌾", 16, yellow, 26) { move: content_width - 44, 32 }
+        let quick_width = (content_width - 12) / 2
+        prop network_hover = 0 ~180ms
+        prop bluetooth_hover = 0 ~180ms
+        box network_tile { from: 0, 128; size: quick_width, 116; corner: 20; color: mix(panel_surface, mix(panel_surface, sage, 8%), max(connected * 0.7, network_hover)); cursor: pointer; label: "Wi-Fi settings" }
+        box { from: 0, 128; size: quick_width, 116; corner: 20; color: mix(panel_line, sage, connected); stroke: 1; opacity: 55% }
+        text "󰤨" { at: 18, 144; size: 27; family: "JetBrainsMono Nerd Font Mono"; color: sage }
+        text "↗" { at: quick_width - 27, 150; size: 18; family: "Adwaita Sans"; color: panel_muted }
+        text network_name { at: 18, 185; width: quick_width - 36; lines: 1; size: 17; family: "Adwaita Sans"; color: panel_ink }
+        text pick(connected, "disconnected", "connected") { at: 18, 213; size: 12; family: "Adwaita Sans"; color: panel_muted }
+        on enter network_tile { network_hover: 1 }
+        on leave network_tile { network_hover: 0 }
+        on press network_tile { emit command(19) }
+        box bluetooth_tile { from: quick_width + 12, 128; size: quick_width, 116; corner: 20; color: mix(panel_surface, mix(panel_surface, mist, 8%), max(bt_power * 0.7, bluetooth_hover)); cursor: pointer; label: "Bluetooth settings" }
+        box { from: quick_width + 12, 128; size: quick_width, 116; corner: 20; color: mix(panel_line, mist, bt_power); stroke: 1; opacity: 55% }
+        text "󰂯" { at: quick_width + 30, 144; size: 27; family: "JetBrainsMono Nerd Font Mono"; color: mist }
+        text power_bt { at: content_width - 18, 160; anchor: right center; size: 12; family: "JetBrainsMono Nerd Font Mono"; color: mist }
+        text "bluetooth" { at: quick_width + 30, 185; size: 17; family: "Adwaita Sans"; color: panel_ink }
+        text bluetooth_name { at: quick_width + 30, 213; width: quick_width - 36; lines: 1; size: 12; family: "Adwaita Sans"; color: panel_muted }
+        on enter bluetooth_tile { bluetooth_hover: 1 }
+        on leave bluetooth_tile { bluetooth_hover: 0 }
+        on press bluetooth_tile { emit command(20) }
+        on press right bluetooth_tile { emit command(6) }
+        box { from: 0, 266; size: content_width, 108; corner: 20; color: panel_surface }
+        text "󰕾" { at: 18, 284; size: 20; family: "JetBrainsMono Nerd Font Mono"; color: sage }
+        text "volume" { at: 48, 285; size: 14; family: "Adwaita Sans"; color: panel_ink }
+        ActionChip(volume_label, 8, sage, false, 8, 10) { move: content_width - volume_chip_width - 8, 276 }
+        MaterialSlider(content_width - 24, volume * 100, 0, 100, sage, volume_percent, 27) { move: 12, 319 }
+        box { from: 0, 386; size: content_width, 108; corner: 20; color: panel_surface }
+        text "󰃟" { at: 18, 404; size: 20; family: "JetBrainsMono Nerd Font Mono"; color: yellow }
+        text "brightness" { at: 48, 405; size: 14; family: "Adwaita Sans"; color: panel_ink }
+        text "{brightness}%" { at: content_width - 24, 415; anchor: right center; size: 14; family: "JetBrainsMono Nerd Font Mono"; color: yellow }
+        MaterialSlider(content_width - 24, brightness, 5, 100, yellow, brightness_set, 28) { move: 12, 439 }
+        box { from: 0, 512; size: content_width, 54; corner: 16; color: mix(panel_surface, mix(panel_surface, sage, 12%), awake) }
+        text "󰅶" { at: 18, 529; size: 21; family: "JetBrainsMono Nerd Font Mono"; color: mix(panel_muted, sage, awake) }
+        text "keep awake" { at: 48, 530; size: 14; family: "Adwaita Sans"; color: panel_ink }
+        ActionChip(power_awake, 11, mix(panel_muted, sage, awake), awake, 11) { move: content_width - 77, 521 }
+        box { from: 0, 589; size: content_width, 1; color: panel_line; opacity: 65% }
+        row { at: 0, content_height - 36.6; gap: 8.54; align: center
+            IconChip("󰂚", 12, panel_ink, 12)
+            IconChip("󰅍", 13, panel_ink, 13)
+            IconChip("󰄀", 14, panel_ink, 14)
+            IconChip("󰸉", 15, sage, 15)
+        }
+        row { at: content_width, content_height - 36.6; anchor: right; gap: 8.54
+            IconChip("󰒲", 17)
+            IconChip("󰐥", 18, red)
+        }
+    }
+}

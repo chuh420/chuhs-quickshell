@@ -1,0 +1,12 @@
+part Tooltips {
+    component Tooltip(available_width: number, available_height: number) {
+        measure tooltip_caption
+        let tooltip_width = tooltip_caption.width + 24.4
+        let tooltip_height = tooltip_caption.height + 14.64
+        group { move: clamp(tip_x - tooltip_width / 2, 8, available_width - tooltip_width - 8), clamp(if(tip_below, tip_y, tip_y - tooltip_height), 8, available_height - tooltip_height - 8)
+            box { from: 0, 0; size: tooltip_width, tooltip_height; corner: 8; color: surface_color }
+            box { from: 0, 0; size: tooltip_width, tooltip_height; corner: 8; color: line_color; stroke: 1 }
+            text tip_label { at: 12.2, 7.32; size: 13; family: "Adwaita Sans"; color: ink; measure: tooltip_caption }
+        }
+    }
+}

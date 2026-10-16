@@ -2,3 +2,10 @@ __pycache__/
 *.pyc
 .cache/
 .local/state/
+
+.config/pleamar/shells/material/helpers/idle-inhibit
+.config/pleamar/shells/material/helpers/*-client.h
+.config/pleamar/shells/material/helpers/*-protocol.c
+
+.env
+.git-credentials

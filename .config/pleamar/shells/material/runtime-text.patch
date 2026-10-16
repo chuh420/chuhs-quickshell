@@ -1,0 +1,38 @@
+diff --git a/src/gpu.rs b/src/gpu.rs
+index 5d73d8e..d9953cc 100644
+--- a/src/gpu.rs
++++ b/src/gpu.rs
+@@ -645,5 +645,9 @@ impl DrawList {
+     /// A piece of the atlas —a glyph, an image— placed on screen. With
+     /// `tint`, its alpha is a mask painted in that colour.
+-    fn sprite(&mut self, d: [f32; 4], uv: [f32; 4], alpha: f32, tint: Option<[f32; 3]>, text: bool, affine: Affine, clips: &[(usize, [f32; 4])]) {
++    fn sprite(&mut self, mut d: [f32; 4], uv: [f32; 4], alpha: f32, tint: Option<[f32; 3]>, text: bool, affine: Affine, clips: &[(usize, [f32; 4])]) {
++        if text && (affine.m[0] - 1.0).abs() < 0.0001 && affine.m[1].abs() < 0.0001 && affine.m[2].abs() < 0.0001 && (affine.m[3] - 1.0).abs() < 0.0001 {
++            d[0] = (d[0] + affine.t[0]).round() - affine.t[0];
++            d[1] = (d[1] + affine.t[1]).round() - affine.t[1];
++        }
+         let bounds = affine.bounds([d[0], d[1], d[0] + d[2], d[1] + d[3]]);
+         self.element(1.0, [bounds[0] - 1.0, bounds[1] - 1.0, bounds[2] + 1.0, bounds[3] + 1.0], clips, |e| {
+diff --git a/src/shape.wgsl b/src/shape.wgsl
+index 72474ee..b6c0fb4 100644
+--- a/src/shape.wgsl
++++ b/src/shape.wgsl
+@@ -373,17 +373,6 @@ fn fs(e: VertexOut) -> @location(0) vec4<f32> {
+         let t = textureSampleLevel(atlas, atlas_sampler, mix(el.uv.xy, el.uv.zw, uv01), 0.0);
+         // Tinted: the piece is a mask —a letter (2), a symbolic icon (1)— and the element provides the colour.
+-        // A letter (2) gets its edges firmed up. Blended as they are, in sRGB,
+-        // a stem that falls across two pixels —most of them: the letters are
+-        // placed at quarters of a pixel and the font is only hinted
+-        // vertically— comes out as two greys, and light text on a dark
+-        // background reads thin and washed out. This is the contrast curve
+-        // DirectWrite and Skia apply to their coverage: stronger the lighter
+-        // the letter, because dark text on light already gains body from the
+-        // sRGB blend. Measured on an «I» in #f6f6f5 over #1b1b1c: #bc + #67
+-        // became #d4 + #8a —the same width, but a letter and not a smudge.
+         if (el.header.z > 1.5) {
+-            let lum = dot(el.color0.rgb, vec3<f32>(0.2126, 0.7152, 0.0722));
+-            let k = mix(0.3, 1.0, lum);
+-            let a = t.a * (k + 1.0) / (t.a * k + 1.0);
++            let a = t.a;
+             return vec4<f32>(el.color0.rgb * a, a) * alpha;
+         }

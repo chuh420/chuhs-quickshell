@@ -1,0 +1,16 @@
+part Calendar {
+    group { show: panel == 3
+        text "time / calendar" { at: 0, 0; size: 11; family: "JetBrainsMono Nerd Font Mono"; color: sage; letter_move: letter * 1.3, 0 }
+        text clock.time { at: -2, 22; size: 52; weight: 300; family: "Adwaita Sans"; color: panel_ink }
+        text month_label { at: 0, 98.82; size: 21.96; family: "Adwaita Sans"; color: sage }
+        repeat i in 0..7 {
+            text pick(i, "mon", "tue", "wed", "thu", "fri", "sat", "sun") { at: 21.96 + i * (content_width - 43.92) / 6, 162.87; anchor: center; size: 13.42; family: "Adwaita Sans"; color: panel_muted }
+        }
+        for d in days {
+            group { move: mod(d.index, 7) * (content_width - 43.92) / 6, 191.54 + floor(d.index / 7) * 43.92; size: 43.92, 34.16
+                box { from: 0, 0; size: 43.92, 34.16; corner: 9.76; color: sage; show: d.current }
+                text d.day { at: 21.96, 17.08; anchor: center; size: 14.64; family: "Adwaita Sans"; color: mix(panel_ink, panel_bg, d.current); show: d.month }
+            }
+        }
+    }
+}

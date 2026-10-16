@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+case "${1:-start}" in
+    start)
+        /home/chuh/.local/bin/pleamar --check /home/chuh/.config/pleamar/shells/material/material.plm
+        if systemctl --user is-failed --quiet rice-pleamar.service; then
+            systemctl --user reset-failed rice-pleamar.service
+        fi
+        systemctl --user import-environment WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE
+        systemctl --user start rice-pleamar.service
+        ;;
+    stop)
+        systemctl --user stop rice-pleamar.service
+        ;;
+    status)
+        systemctl --user status rice-pleamar.service --no-pager
+        ;;
+    *) exit 2 ;;
+esac

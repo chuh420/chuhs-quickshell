@@ -1,0 +1,21 @@
+library MaterialPalette {
+    let bg = #282828
+    let surface_color = #32302f
+    let elevated = #3c3836
+    let line_color = #504945
+    let ink = #d4be98
+    let muted_color = #928374
+    let green = #a9b665
+    let yellow = #d8a657
+    let red = #ea6962
+    let panel_bg = bg
+    let panel_surface = surface_color
+    let panel_elevated = elevated
+    let panel_line = line_color
+    let panel_ink = ink
+    let panel_muted = muted_color
+    let sage = green
+    let mist = yellow
+    spring quick = 700, 40
+    spring calm = 500, 36
+}

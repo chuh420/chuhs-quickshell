@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euo pipefail
+case "${1:-}" in
+    launcher|menu|calendar|wallpapers|wifi|bluetooth|audio|battery|close)
+        exec /home/chuh/.local/bin/pleamar --say material "emit $1"
+        ;;
+    *) exit 2 ;;
+esac

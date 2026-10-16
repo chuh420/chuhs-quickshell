@@ -1,0 +1,11 @@
+[Unit]
+Description=Rice clipboard helper
+PartOf=rice-session.target
+After=graphical-session-pre.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/wl-paste --watch /usr/bin/python /home/chuh/.config/rice/clipboard.py
+Restart=always
+RestartSec=2

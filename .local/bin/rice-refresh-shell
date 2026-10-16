@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 sleep 1
-systemctl --user restart rice-quickshell.service
+systemctl --user restart rice-pleamar.service

@@ -2,16 +2,20 @@
 
 # chuh's quickshell
 
-панель и меню для hyprland на quickshell в цветах gruvbox material. здесь лежат исходники qml, python-помощники, скрипт запуска, обои, стили браузера и пользовательские службы обновления оболочки.
+панель и меню для hyprland на Pleamar в цветах gruvbox material. основная разработка оболочки находится в [pleamar](https://github.com/chuh420/pleamar). здесь сохранены общие настройки рабочего стола, оболочка Pleamar, сохранённые исходники Quickshell на qml, python-помощники, скрипт запуска, обои, стили браузера и пользовательские службы обновления оболочки.
 
 панель показывает рабочие столы, часы, батарею, звук, сеть, bluetooth, раскладку, загрузку CPU, занятую RAM и трей. есть поиск приложений, календарь, центр управления с переключателем Keep awake и галерея обоев. уведомления обслуживает swaync, экран блокировки использует hyprlock, а индикаторы громкости и яркости использует swayosd.
 
-каталоги `.config` и `.local` повторяют пути относительно домашнего каталога. скопируйте их содержимое с резервной копией существующих файлов. полный запуск выполняет `~/.config/rice/start`: скрипт импортирует окружение сеанса, запускает `rice-quickshell.service` и помощников. Служба перезапускает оболочку после сбоя; изменения приложений и значков вызывают перезапуск через `rice-shell-assets.service`. Логи: `journalctl --user -u rice-quickshell.service`.
+каталоги `.config` и `.local` повторяют пути относительно домашнего каталога. скопируйте их содержимое с резервной копией существующих файлов. полный запуск выполняет `~/.config/rice/start`: скрипт импортирует окружение сеанса, запускает `rice-pleamar.service` и `rice-session.target`. systemd следит за помощниками и перезапускает их после выхода. Служба перезапускает оболочку после сбоя; изменения приложений и значков вызывают перезапуск через `rice-shell-assets.service`. Логи: `journalctl --user -u rice-pleamar.service`.
 
-нужны quickshell с поддержкой hyprland, python, python-dbus, python-gobject, qt, pipewire, wireplumber, bluez, iwd, hyprpaper, hypridle, hyprlock, swaync, swayosd, rofi, wl-clipboard, cliphist, grim, slurp, satty и pavucontrol. сеть на исходной системе обслуживает iwd, разрешение имён выполняет systemd-resolved. системные службы и настройки hyprland хранятся в сетапе dotfiles.
+нужны Pleamar 0.4.2 с локальными правками отрисовки текста и оптимизацией заливок, ImageMagick, python, python-dbus, python-gobject, qt, pipewire, wireplumber, bluez, iwd, hyprpaper, hypridle, hyprlock, swaync, swayosd, rofi, wl-clipboard, cliphist, grim, slurp, satty и pavucontrol. сеть на исходной системе обслуживает iwd, разрешение имён выполняет systemd-resolved. системные службы и настройки hyprland хранятся в сетапе dotfiles.
 
 скрипты содержат пути `/home/chuh`; перед использованием под другим пользователем замените их. обои для галереи добавляются в пользовательскую папку изображений. история буфера обмена и состояние оболочки создаются локально и не включены в репозиторий.
 
 после копирования пользовательских служб выполните `systemctl --user daemon-reload` и `systemctl --user enable --now rice-shell-assets.path`. сочетания клавиш и интеграция с hyprland настраиваются отдельно. документация помощников находится рядом с ними.
 
 Wi-Fi обновляется по событиям iwd, а системные показатели читает постоянный помощник. Интервалы обновления описаны в документации помощников.
+
+Pleamar запускается при входе; бинды и обновления приложений обращаются к нему. Quickshell установлен с прежними конфигами для ручного запуска через `systemctl --user start rice-quickshell.service`. вернуться: `systemctl --user start rice-pleamar.service`. автоматического возврата на Quickshell нет.
+
+[аудит](docs/audit-2026-10-16.md) и [замеры runtime](docs/optimization-2026-10-16.md) описывают исправления и пределы проверки. тесты помощников: `python -m unittest discover -s tests -v`.

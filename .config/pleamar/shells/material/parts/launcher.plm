@@ -1,0 +1,39 @@
+part Launcher {
+    group { show: panel == 1
+        let app_list_height = content_height - 216
+        column launcher_list { at: 0, 174; view: content_width, app_list_height; step: 74.42; content: count * 74.42 - 6.1; gap: 6.1
+            for app in rows from offset {
+                group { move: (1 - clamp(content_motion * 1.6 - min(app.index - offset, 5) * 0.08, 0, 1)) * 16, offset * 74.42; opacity: clamp(content_motion * 1.6 - min(app.index - offset, 5) * 0.08, 0, 1); size: content_width, 68.32
+                    prop hot = 0 ~140ms
+                    box hit { from: 0, 0; size: content_width, 68.32; corner: 13.42; color: mix(panel_surface, mix(panel_surface, sage, 7%), app.selected); opacity: max(hot, app.selected); cursor: pointer; label: app.name }
+                    box { from: 0, 16; size: 3, 36.32; corner: 1.5; color: sage; show: app.selected }
+                    group { opacity: if(app.hidden, 55%, 100%)
+                        box { from: 12.2, 17.08; size: 34.16, 34.16; corner: 8.54; color: panel_elevated }
+                        image app.icon { at: 12.2, 17.08; size: 34.16, 34.16; show: app.has_icon }
+                        text app.initial { at: 29.28, 34.16; anchor: center; size: 19.52; family: "Adwaita Sans"; color: sage; show: not app.has_icon }
+                        text app.name { at: 62.22, 15.25; width: content_width - 108; lines: 1; size: 17.08; line_height: 1.2143; family: "Adwaita Sans"; color: panel_ink }
+                        text app.detail { at: 62.22, 38.43; width: min(475.8, content_width - 108); lines: 1; size: 12.2; line_height: 1.2; family: "Adwaita Sans"; color: panel_muted }
+                        text "󰈈" { at: content_width - 46, 34.16; anchor: center; size: 21.96; family: "JetBrainsMono Nerd Font Mono"; color: panel_muted; show: app.hidden }
+                        text "↵" { at: content_width - 19, 34.16; anchor: center; size: 14.64; family: "Adwaita Sans"; color: sage; show: app.selected }
+                    }
+                    on enter hit { hot: 1 ~140ms }
+                    on leave hit { hot: 0 ~140ms }
+                    on press hit { emit choose(app.index) }
+                }
+            }
+        }
+        text "workspace / launch" { at: 0, 0; size: 11; family: "Adwaita Sans"; color: sage; letter_move: letter * 1.3, 0 }
+        text "applications" { at: -1, 22; size: 32; weight: 400; family: "Adwaita Sans"; color: panel_ink }
+        ActionChip("×", 27, panel_muted) { move: content_width - 40, 22 }
+        box { from: 0, 88; size: content_width, 63.44; corner: 14.64; color: panel_surface }
+        box { from: 0, 88; size: content_width, 63.44; corner: 14.64; color: sage; stroke: 1.22 }
+        text "󰍉" { at: 18, 107; size: 25; family: "JetBrainsMono Nerd Font Mono"; color: sage }
+        input query { at: 54, 107.5; width: content_width - 76; size: 19.52; family: "Adwaita Sans"; color: panel_ink; placeholder: "find an application…" }
+        on submit query while opened and screen.index == origin { emit activate_selection }
+        text "no results found" { at: content_width / 2, 174 + app_list_height / 2; anchor: center; size: 14.64; family: "Adwaita Sans"; color: panel_muted; show: count == 0 }
+        on change floor(launcher_list.scroll / 74.42) while panel == 1 and screen.index == origin { emit list_scrolled(floor(launcher_list.scroll / 74.42)) }
+        on list_reset { launcher_list.scroll: 0 }
+        on selection_changed while panel == 1 and screen.index == origin { launcher_list.scroll: clamp(if(selected * 74.42 < launcher_list.scroll, selected * 74.42, if(selected * 74.42 + 68.32 > launcher_list.scroll + app_list_height, selected * 74.42 + 68.32 - app_list_height, launcher_list.scroll)), 0, max(0, count * 74.42 - 6.1 - app_list_height)) }
+        text launcher_help { at: 0, content_height - 14.64; width: content_width; lines: 1; size: 12.2; family: "Adwaita Sans"; color: panel_muted }
+    }
+}

@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")"
+wayland-scanner client-header idle-inhibit.xml idle-inhibit-client.h
+wayland-scanner private-code idle-inhibit.xml idle-inhibit-protocol.c
+wayland-scanner client-header layer-shell.xml layer-shell-client.h
+wayland-scanner private-code layer-shell.xml layer-shell-protocol.c
+wayland-scanner private-code /usr/share/wayland-protocols/stable/xdg-shell/xdg-shell.xml xdg-shell-protocol.c
+wayland_flags=$(pkg-config --cflags --libs wayland-client)
+read -r -a wayland_args <<< "$wayland_flags"
+cc -O2 idle-inhibit.c idle-inhibit-protocol.c layer-shell-protocol.c xdg-shell-protocol.c "${wayland_args[@]}" -o idle-inhibit

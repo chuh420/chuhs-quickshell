@@ -1,0 +1,11 @@
+[Unit]
+Description=Rice osd helper
+PartOf=rice-session.target
+After=graphical-session-pre.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/swayosd-server
+Restart=always
+RestartSec=2

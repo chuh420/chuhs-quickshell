@@ -1,0 +1,249 @@
+import "palette.plm"
+scene Material {
+    surface { size: full, 42; anchor: top; reserve: 42; screens: each; keyboard: exclusive while opened; level: top }
+    permissions { run: "python", "date", "hyprctl", "brightnessctl", "/home/chuh/.local/bin/chuhshell", "/home/chuh/.config/pleamar/shells/material/helpers/idle-inhibit"; services: "workspaces", "window", "audio", "audio.*", "clock", "tray", "tray.*" }
+    prop panel_motion = 0 ~spring(420, 27)
+    prop content_motion = 0 ~360ms
+    prop backdrop_motion = 0 ~200ms
+    on change opened while opened { panel_motion: 1 ~spring(420, 27); content_motion: 1 ~360ms after 35ms; backdrop_motion: 1 ~200ms }
+    on change opened while not opened { panel_motion: 0 ~230ms; content_motion: 0 ~170ms; backdrop_motion: 0 ~220ms }
+    fact opened = false
+    fact panel = 0
+    fact tray_index = 0
+    fact origin = 0
+    fact panel_x = 0
+    fact volume = 0
+    fact input_volume = 0
+    fact audio_muted = false
+    fact input_muted = false
+    fact brightness = 50
+    fact battery = 0
+    fact battery_present = false
+    fact charging = false
+    fact connected = false
+    fact wifi_power = false
+    fact bt_power = false
+    fact bt_scan = false
+    fact saved_tab = false
+    fact selected = 0
+    fact offset = 0
+    fact count = 0
+    fact show_hidden = false
+    fact prompt_open = false
+    fact prompt_secret = true
+    fact awake = false
+    text title = "still / material"
+    text date_time = ""
+    text cpu_label = "…"
+    text ram_label = "…"
+    text keyboard_label = "EN"
+    text battery_label = ""
+    text audio_label = "󰕾"
+    text network_label = "󰤭"
+    text heading = ""
+    text subtitle = ""
+    text message = ""
+    text prompt_label = ""
+    text query = ""
+    text answer = ""
+    text month_label = ""
+    text battery_details = ""
+    fact tray_root = true
+    fact prompt_input = false
+    fact has_message = false
+    fact volume_chip_width = 46.848
+    fact input_chip_width = 46.848
+    fact scan_wifi_width = 38.064
+    fact scan_bt_width = 64.416
+    fact tip_visible = false
+    fact tip_x = 0
+    fact tip_y = 0
+    fact tip_origin = 0
+    fact tip_below = false
+    text tip_label = ""
+    text pin = ""
+    text prompt_detail = ""
+    text long_date = ""
+    text network_name = "Offline"
+    text bluetooth_label = "Bluetooth unavailable"
+    text bluetooth_name = "No adapter found"
+    text bluetooth_empty = "Bluetooth is turned off"
+    text wifi_status = "Wi-Fi is turned off"
+    text wifi_empty = "Wireless disabled"
+    text power_wifi = "OFF"
+    text power_bt = "OFF"
+    text power_awake = "OFF"
+    text scan_wifi = "󰑐"
+    text scan_bt = "Scan"
+    text volume_label = "0%"
+    text volume_percent_label = "0%"
+    text input_label = "ON"
+    text battery_status = ""
+    text battery_percent = "0%"
+    text battery_time = "Calculating…"
+    text battery_power = "—"
+    text battery_health = "—"
+    text launcher_help = ""
+    text wallpaper_help = "Click a preview to apply  ·  ↑ ↓ ← → navigate  ·  Esc close"
+    text battery_icon = "󰁹"
+    text battery_bar_percent = "0%"
+    service clock { time: text; date: text; day: number; month: number; year: number; minute: number }
+    model desks max 64 { id: number; active: bool; occupied: bool; label: text }
+    model tray_icons max 64 { key: text; title: text; icon: image 21, 21 }
+    model rows max 12 { name: text; detail: text; active: bool; selected: bool; hidden: bool; allowed: bool = true; danger: bool; symbol: text; action_label: text; action_width: number; icon: image 35, 35; initial: text; has_icon: bool; extra: bool }
+    model days max 42 { day: text; current: bool; month: bool }
+    model pictures max 8 { name: text; picture: image 384, 216; active: bool; selected: bool }
+    model outputs max 32 { name: text; default: bool }
+    model inputs max 32 { name: text; default: bool }
+    event list_scrolled ->
+    event list_reset ->
+    event selection_changed ->
+    event audio_device ->
+    event volume_percent ->
+    event input_percent ->
+    event tip_show ->
+    event tip_hide ->
+    event launcher ->
+    event menu ->
+    event calendar ->
+    event wallpapers ->
+    event wifi ->
+    event bluetooth ->
+    event audio ->
+    event battery ->
+    event toggle_panel ->
+    event close ->
+    event go ->
+    event command ->
+    event choose ->
+    event extra ->
+    event scroll_rows ->
+    event move_vertical ->
+    event move_selection ->
+    event activate_selection ->
+    event hide_selected ->
+    event hidden_toggle ->
+    event wifi_toggle ->
+    event wifi_scan ->
+    event wifi_tab ->
+    event bt_toggle ->
+    event bt_discovery ->
+    event prompt_submit ->
+    event prompt_cancel ->
+    event volume_step ->
+    event volume_set ->
+    event input_set ->
+    event mute ->
+    event input_mute ->
+    event brightness_set ->
+    event awake_toggle ->
+    event tray_click ->
+    event tray_menu ->
+    event tray_wheel ->
+    event refresh ->
+    include "parts/widgets.plm"
+    component Chip(label: text, action: number, tone: color, width: number, shortcut: text) {
+        size: width, 27
+        prop hot = 0 ~140ms
+        box hit { from: 0, 0; size: width, 27; corner: 7; color: elevated; opacity: hot; cursor: pointer; label: label }
+        text label { at: width / 2, 13.5; anchor: center; family: "JetBrainsMono Nerd Font Mono"; size: 15.8; color: tone; show: action != 8 }
+        text label { at: width / 2, 13.5; anchor: center; family: "JetBrainsMono Nerd Font Mono"; size: 13.4; color: tone; show: action == 8 }
+        on hover hit for 650ms while action == 7 or action == 10 or action == 2 { tip_origin = screen.index; tip_x = pointer.x - local.x + width / 2; tip_y = pointer.y - local.y + 35; tip_below = true; emit tip_show(action) }
+        on enter hit { hot: 1 ~140ms }
+        on leave hit { hot: 0 ~140ms; emit tip_hide }
+        on press hit { origin = screen.index; panel_x = pointer.x - local.x + width / 2; emit tip_hide; emit toggle_panel(action) }
+        on press right hit while action == 7 { emit command(8) }
+        on scroll hit while action == 7 { emit volume_step(wheel) }
+    }
+    component Desk(d: record) {
+        prop span = 28 ~spring(580, 30)
+        prop desk_active = 0 ~220ms
+        follow desk_active = d.active
+        prop hot = 0 ~140ms
+        follow span = if(d.active, 39, 28)
+        row { size: span, 27
+            group { size: span, 27
+                box hit { from: 0, 0; size: span, 27; corner: 7; color: elevated; opacity: max(hot, desk_active); cursor: pointer; label: "workspace {d.id}" }
+                box { from: span / 2 - 7 * desk_active, 24; size: 14 * desk_active, 2; corner: 1; color: green; opacity: desk_active }
+                text d.label { at: span / 2, 13.5; anchor: center; family: "JetBrainsMono Nerd Font Mono"; size: 13.4; color: green; show: d.active }
+                text d.label { at: span / 2, 13.5; anchor: center; family: "JetBrainsMono Nerd Font Mono"; size: 15.8; color: mix(muted_color, ink, d.occupied); show: not d.active }
+                on enter hit { hot: 1 ~140ms }
+                on leave hit { hot: 0 ~140ms; emit tip_hide }
+                on hover hit for 650ms { tip_origin = screen.index; tip_x = pointer.x - local.x + span / 2; tip_y = pointer.y - local.y + 35; tip_below = true; emit tip_show(10000 + d.id) }
+                on press hit { emit tip_hide; emit go(d.id) }
+            }
+        }
+    }
+    box { from: 12, 7; size: screen.width - 24, 35; corner: 11; color: bg }
+    box { from: 12, 7; size: screen.width - 24, 35; corner: 11; color: line_color; stroke: 1.2 }
+    row left_bar ~spring(580, 34) { at: 18, 11; gap: 3.6; align: center
+        Chip("󰣇", 1, green, 29, "Super")
+        box { size: 1.2, 15; color: line_color }
+        space 8
+        for d in desks { Desk(d) }
+        space 14
+        text title { size: 12.2; width: screen.width * 0.16; lines: 1; color: muted_color; family: "Adwaita Sans" }
+    }
+    row center_bar { at: screen.width / 2, 9; anchor: center; padding: 7; cursor: pointer
+        text date_time { size: 13.4; color: ink; family: "JetBrainsMono Nerd Font Mono" }
+    }
+    on press center_bar { origin = screen.index; panel_x = screen.width / 2; emit toggle_panel(3) }
+    image keyboard_icon = file "/home/chuh/.config/rice/icons/keyboard-bar.svg", 20, 15
+    row right_bar { at: screen.width - 18, 11; anchor: right; gap: 2.4; align: center
+        for t in tray_icons {
+            group { size: 28, 27
+                text "󰀻" { at: 14, 13.5; anchor: center; size: 19; family: "JetBrainsMono Nerd Font Mono"; color: muted_color }
+                image t.icon { at: 3.5, 3; size: 21, 21 }
+                zone box hit { from: 0, 0; size: 28, 27; cursor: pointer; label: t.title }
+                on press hit { emit tray_click(t.index) }
+                on press right hit { origin = screen.index; panel_x = pointer.x; emit tray_menu(t.index) }
+                on scroll hit { tray_index = t.index; emit tray_wheel(wheel) }
+            }
+        }
+        space 7
+        row { size: 65, 27; gap: 5; align: center
+            text "󰻠" { size: 14.6; family: "JetBrainsMono Nerd Font Mono"; color: ink }
+            text cpu_label { size: 12.2; family: "JetBrainsMono Nerd Font Mono"; color: ink }
+        }
+        row { size: 95, 27; gap: 5; align: center
+            text "󰍛" { size: 14.6; family: "JetBrainsMono Nerd Font Mono"; color: ink }
+            text ram_label { size: 12.2; family: "JetBrainsMono Nerd Font Mono"; color: ink }
+        }
+        group { size: 59.78, 27
+            prop keyboard_hot = 0 ~140ms
+            box keyboard_hit { from: 0, 0; size: 59.78, 27; corner: 7.32; color: elevated; opacity: keyboard_hot; cursor: pointer; label: "keyboard layout" }
+            image keyboard_icon { at: 10, 6.1; size: 19.52, 14.64 }
+            text keyboard_label { at: 43.2, 13.5; anchor: center; size: 12.2; family: "JetBrainsMono Nerd Font Mono"; color: ink }
+            on enter keyboard_hit { keyboard_hot: 1 ~140ms }
+            on leave keyboard_hit { keyboard_hot: 0 ~140ms }
+            on press keyboard_hit { emit command(1) }
+                }
+        Chip(network_label, 5, mix(muted_color, green, connected), 29, "")
+        Chip("󰂯", 6, mix(muted_color, green, bt_power), 29, "")
+        Chip(audio_label, 7, ink, 29, "XF86AudioRaiseVolume / XF86AudioLowerVolume / XF86AudioMute")
+        group { size: 69, 27; show: battery_present
+            prop battery_hot = 0 ~140ms
+            box battery_hit { from: 0, 0; size: 69, 27; corner: 7.32; color: elevated; opacity: battery_hot; cursor: pointer; label: "battery" }
+            text battery_icon { at: 14.4, 13.5; anchor: center; size: 15.86; family: "JetBrainsMono Nerd Font Mono"; color: mix(ink, red, battery < 20) }
+            text battery_bar_percent { at: 43.3, 13.5; anchor: center; size: 13.42; family: "JetBrainsMono Nerd Font Mono"; color: mix(ink, red, battery < 20) }
+            on enter battery_hit { battery_hot: 1 ~140ms }
+            on leave battery_hit { battery_hot: 0 ~140ms }
+            on press battery_hit { origin = screen.index; panel_x = pointer.x - local.x + 34.5; emit toggle_panel(8) }
+        }
+        space 5
+        box { size: 1.2, 15; color: line_color }
+        space 5
+        Chip("󰂚", 10, yellow, 29, "Super + N")
+        Chip("󰒓", 2, green, 29, "Super + Space")
+    }
+    include "parts/tooltips.plm"
+    surface panels { size: full, full; anchor: top; reserve: -1; screens: each; open: (opened or panel_motion > 0.002) and screen.index == origin; keyboard: exclusive while opened; level: overlay
+        include "parts/panels.plm"
+        group { show: tip_visible and screen.index == tip_origin
+            Tooltip(panels.width, panels.height)
+        }
+    }
+    surface tooltips { size: full, full; anchor: top; reserve: -1; screens: each; open: tip_visible and not opened and panel_motion <= 0.002 and screen.index == tip_origin; keyboard: none; level: overlay
+        Tooltip(tooltips.width, tooltips.height)
+    }
+}

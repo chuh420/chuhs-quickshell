@@ -1,0 +1,36 @@
+part Panels {
+    let module_panel = panel >= 5 and panel <= 8
+    let card_width = if(module_panel, 468, if(panel == 9, 292.8, if(panel == 4, min(1000, panels.width - 40), if(panel == 1, 720, if(panel == 2, 520, 468)))))
+    let card_height = if(module_panel, min(panels.height - 70, if(panel == 8, 460, if(panel == 7, 492, if(panel == 5 and prompt_open, 652.7, 512.4)))), if(panel == 9, if(tray_root, 219.6, min(560, 92 + count * 36.6)), if(panel == 4, min(700, panels.height - 100), if(panel == 1, 650, if(panel == 3, 512, 704)))))
+    let card_x = if(panel == 1 or panel == 4, (panels.width - card_width) / 2, if(module_panel or panel == 9, clamp(if(panel_x > 0, panel_x - card_width / 2, panels.width - card_width - 14), 14, panels.width - card_width - 14), panels.width - card_width - 14))
+    let card_y = if(panel == 1 or panel == 4, min(130, (panels.height - card_height) / 2), 58)
+    let padding = if(module_panel, 24, if(panel == 1, 32, 28))
+    let content_width = card_width - 2 * padding
+    let content_height = card_height - 2 * padding
+    group { show: (opened or panel_motion > 0.002) and screen.index == origin
+        box outside { from: 0, 0; size: panels.width, panels.height; color: #1d2021; opacity: if(module_panel, 9.4118%, 37.6471%) * clamp(backdrop_motion, 0, 1); label: "close panel" }
+        on press outside { emit close }
+        group card { move: card_x + if(module_panel, 12, 0) * (1 - panel_motion), card_y + if(module_panel, -14, 24) * (1 - panel_motion); size: card_width, card_height; pivot: if(panel == 1 or panel == 4, card_width / 2, card_width - 36), 0; scale: 0.985 + 0.015 * panel_motion, 0.90 + 0.10 * panel_motion; rotate: if(module_panel, 0.035, -0.045) * (1 - panel_motion); opacity: clamp(panel_motion * 2, 0, 1)
+            box { from: 3, 9; size: card_width - 6, card_height; corner: if(module_panel, 20, 29); color: #1d2021; opacity: 22% }
+            box body { from: 0, 0; size: card_width, card_height; corner: if(module_panel, 17.08, 26.84); color: panel_bg }
+            box { from: 0, 0; size: card_width, card_height; corner: if(module_panel, 17.08, 26.84); color: panel_line; stroke: 1.22 }
+            on press body { }
+            group { move: padding, padding + 7 * (1 - content_motion); opacity: clamp(content_motion * 1.6, 0, 1); size: content_width, content_height
+                include "launcher.plm"
+                include "control.plm"
+                include "calendar.plm"
+                include "wallpapers.plm"
+                include "modules.plm"
+                include "tray.plm"
+            }
+        }
+    }
+    on key Escape while opened and screen.index == origin { emit close }
+    on key Down while opened and screen.index == origin { emit move_vertical(1) }
+    on key Up while opened and screen.index == origin { emit move_vertical(-1) }
+    on key Right while opened and screen.index == origin { emit move_selection(1) }
+    on key Left while opened and screen.index == origin { emit move_selection(-1) }
+    on key Return while opened and panel != 1 and screen.index == origin { emit activate_selection }
+    on key Ctrl+h while opened and screen.index == origin { emit hide_selected }
+    on key Ctrl+Shift+H while opened and screen.index == origin { emit hidden_toggle }
+}

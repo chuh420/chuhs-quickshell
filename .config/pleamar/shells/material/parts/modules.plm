@@ -1,0 +1,123 @@
+part Modules {
+    group { show: panel == 5
+        text "Wi-Fi" { at: 0, 5.5; size: 21.96; family: "Adwaita Sans"; color: panel_ink }
+        let wifi_power_width = if(wifi_power, 46.848, 55.632)
+        ActionChip(power_wifi, 2, mix(panel_muted, sage, wifi_power), false, 0, 0, wifi_power_width) { move: content_width - wifi_power_width, 0 }
+        text wifi_status { at: 0, 51.24; width: content_width; lines: 1; size: 14.64; family: "Adwaita Sans"; color: panel_muted }
+        row { at: 0, 85.04; gap: 14.64
+            ActionChip("available", 3, panel_ink, not saved_tab)
+            ActionChip("saved", 4, panel_ink, saved_tab)
+        }
+        ActionChip(scan_wifi, 5, sage) { move: content_width - scan_wifi_width, 85.04 }
+        let wifi_list_height = content_height - 171.94 - if(prompt_open, 154, 0) - if(has_message, 26, 0)
+        column wifi_list { at: 0, 136.24; view: content_width, max(60, wifi_list_height); step: 73.2; content: count * 78.08 - 7.32; gap: 7.32
+            for net in rows from offset {
+                group { size: content_width, 70.76; move: 0, offset * 78.08
+                    prop hot = 0 ~140ms
+                    box { from: 0, 0; size: content_width, 70.76; corner: 12.2; color: mix(panel_surface, panel_elevated, net.active); opacity: max(hot, net.active) }
+                    zone box hit { from: 0, 0; size: content_width - if(net.extra, 53.68, 0), 70.76; show: net.allowed; cursor: pointer; label: net.name }
+                    text net.symbol { at: 21.96, 35.38; anchor: center; size: 21.96; family: "JetBrainsMono Nerd Font Mono"; color: mix(panel_muted, sage, net.active) }
+                    text net.name { at: 43.92, 16; width: content_width - 56.12 - if(net.extra, 53.68, 0); lines: 1; size: 14.64; family: "Adwaita Sans"; color: panel_ink }
+                    text net.detail { at: 43.92, 39; width: content_width - 56.12 - if(net.extra, 53.68, 0); lines: 1; size: 12.2; family: "Adwaita Sans"; color: panel_muted }
+                    ActionChip("󰆴", net.index, red, false, 0, 0, 38.064, extra) { move: content_width - 50.264, 17.08; show: net.extra }
+                    on enter hit { hot: 1 ~140ms }
+                    on leave hit { hot: 0 ~140ms }
+                    on press hit { emit choose(net.index) }
+                }
+            }
+        }
+        text wifi_empty { at: content_width / 2, 136.24 + wifi_list_height / 2; anchor: center; size: 14.64; family: "Adwaita Sans"; color: panel_muted; show: count == 0 }
+        group { show: prompt_open
+            text prompt_label { at: 0, content_height - 184; width: content_width; lines: 1; size: 14.64; family: "Adwaita Sans"; color: panel_ink }
+            box { from: 0, content_height - 150; size: content_width, 46.36; corner: 9.76; color: panel_surface }
+            box { from: 0, content_height - 150; size: content_width, 46.36; corner: 9.76; color: sage; stroke: 1.22 }
+            input answer { at: 12.2, content_height - 137.8; width: content_width - 24.4; size: 14.64; family: "Adwaita Sans"; color: panel_ink; secret: true; agent: no }
+            row { at: content_width, content_height - 87; anchor: right; gap: 14.64
+                ActionChip("cancel", 24)
+                ActionChip("connect", 25, sage)
+            }
+            on submit answer { emit prompt_submit }
+        }
+        text message { at: 0, content_height - 55; width: content_width; lines: 2; size: 13.42; family: "Adwaita Sans"; color: red; show: has_message }
+        text "󰒓 control center" { at: 0, content_height - 17.568; size: 14.64; family: "Adwaita Sans"; color: panel_muted }
+        zone box back_wifi { from: 0, content_height - 24; size: 150, 24; cursor: pointer; label: "control center" }
+        on press back_wifi { emit command(26) }
+        on change floor(wifi_list.scroll / 78.08) while panel == 5 and screen.index == origin { emit list_scrolled(floor(wifi_list.scroll / 78.08)) }
+        on list_reset { wifi_list.scroll: 0 }
+    }
+    group { show: panel == 6
+        text "Bluetooth" { at: 0, 5.5; size: 21.96; family: "Adwaita Sans"; color: panel_ink }
+        let bt_power_width = if(bt_power, 46.848, 55.632)
+        ActionChip(power_bt, 6, mix(panel_muted, sage, bt_power), false, 0, 0, bt_power_width) { move: content_width - bt_power_width, 0 }
+        text bluetooth_name { at: 0, 61; width: content_width - scan_bt_width - 14.64; lines: 1; size: 14.64; family: "Adwaita Sans"; color: panel_muted }
+        ActionChip(scan_bt, 7, sage) { move: content_width - scan_bt_width, 51.24 }
+        let bt_list_height = content_height - 138.18 - if(prompt_open, 168, 0)
+        column bt_list { at: 0, 102.48; view: content_width, max(60, bt_list_height); step: 73.2; content: count * 90.28 - 7.32; gap: 7.32
+            for device in rows from offset {
+                group { size: content_width, 82.96; move: 0, offset * 90.28
+                    box { from: 0, 0; size: content_width, 82.96; corner: 12.2; color: mix(panel_surface, panel_elevated, device.active) }
+                    text device.name { at: 12.2, 19; width: content_width - 38 - device.action_width - if(device.extra, 38.064, 0); lines: 1; size: 14.64; family: "Adwaita Sans"; color: panel_ink }
+                    text device.detail { at: 12.2, 47; width: content_width - 38 - device.action_width - if(device.extra, 38.064, 0); lines: 1; size: 12.2; family: "Adwaita Sans"; color: mix(panel_muted, sage, device.active) }
+                    ActionChip(device.action_label, device.index, panel_ink, false, 0, 0, device.action_width, choose) { move: content_width - 12.2 - device.action_width - if(device.extra, 50.264, 0), 23.18 }
+                    ActionChip("󰆴", device.index, red, false, 0, 0, 38.064, extra) { move: content_width - 50.264, 23.18; show: device.extra }
+                }
+            }
+        }
+        text bluetooth_empty { at: content_width / 2, 102.48 + bt_list_height / 2; anchor: center; size: 14.64; family: "Adwaita Sans"; color: panel_muted; show: count == 0 }
+        group { show: prompt_open
+            text prompt_label { at: 0, content_height - 192; width: content_width; lines: 2; size: 14.64; family: "Adwaita Sans"; color: panel_ink }
+            text prompt_detail { at: 0, content_height - 157; width: content_width; lines: 2; size: 14.64; family: "Adwaita Sans"; color: sage }
+            box { from: 0, content_height - 118; size: content_width, 42; corner: 9.76; color: panel_surface; show: prompt_input }
+            input pin { at: 12.2, content_height - 108; width: content_width - 24.4; size: 14.64; family: "Adwaita Sans"; color: panel_ink; placeholder: "PIN"; show: prompt_input; agent: no }
+            row { at: 0, content_height - 62; gap: 14.64
+                ActionChip("cancel", 24)
+                ActionChip("confirm", 25, sage)
+            }
+            on submit pin { emit prompt_submit }
+        }
+        text "󰒓 control center" { at: 0, content_height - 17.568; size: 14.64; family: "Adwaita Sans"; color: panel_muted }
+        zone box back_bt { from: 0, content_height - 24; size: 150, 24; cursor: pointer; label: "control center" }
+        on press back_bt { emit command(26) }
+        on change floor(bt_list.scroll / 90.28) while panel == 6 and screen.index == origin { emit list_scrolled(floor(bt_list.scroll / 90.28)) }
+        on list_reset { bt_list.scroll: 0 }
+    }
+    group { show: panel == 7
+        text "sound" { at: 0, 5.5; size: 21.96; family: "Adwaita Sans"; color: panel_ink }
+        ActionChip(audio_label, 8, mix(sage, red, audio_muted), false, 8) { move: content_width - 38.8, 0 }
+        text "output" { at: 0, 51.24; size: 14.64; family: "Adwaita Sans"; color: panel_muted }
+        text volume_percent_label { at: content_width, 60.3; anchor: right center; size: 14.64; family: "Adwaita Sans"; color: panel_ink }
+        MaterialSlider(content_width, volume * 100, 0, 100, sage, volume_percent, 27) { move: 0, 83 }
+        column { at: 0, 136.4; gap: 14.64
+            for d in outputs { DeviceChip(d, content_width, false) }
+        }
+        let divider_y = 173.2 + max(0, outputs.count - 1) * 51.24
+        box { from: 0, divider_y; size: content_width, 1.22; color: panel_line }
+        text "microphone" { at: 0, divider_y + 24.4; size: 14.64; family: "Adwaita Sans"; color: panel_muted }
+        ActionChip(input_label, 9, mix(sage, red, input_muted), false, 9) { move: content_width - input_chip_width, divider_y + 14.64 }
+        MaterialSlider(content_width, input_volume * 100, 0, 100, sage, input_percent) { move: 0, divider_y + 82.2 }
+        column { at: 0, divider_y + 135.6; gap: 14.64
+            for d in inputs { DeviceChip(d, content_width, true) }
+        }
+        row { at: 0, content_height - 36.6
+            ActionChip("mixer ↗", 10)
+        }
+        ActionChip("󰒓", 26) { move: content_width - 38.064, content_height - 36.6 }
+    }
+    group { show: panel == 8
+        text "battery" { at: 0, 0; size: 21.96; family: "Adwaita Sans"; color: panel_ink }
+        text battery_status { at: content_width, 13.176; anchor: right center; size: 14.64; family: "Adwaita Sans"; color: sage }
+        text battery_percent { at: 0, 43; size: 58; weight: 300; family: "Adwaita Sans"; color: panel_ink }
+        box { from: 0, 124.1; size: content_width, 9.76; corner: 4.88; color: panel_elevated }
+        box { from: 0, 124.1; size: content_width * battery / 100, 9.76; corner: 4.88; color: mix(sage, red, battery < 20) }
+        text "remaining" { at: 0, 154; size: 14.64; family: "Adwaita Sans"; color: panel_muted }
+        text battery_time { at: content_width, 163.5; anchor: right center; size: 14.64; family: "Adwaita Sans"; color: panel_ink }
+        text "power draw" { at: 0, 189; size: 14.64; family: "Adwaita Sans"; color: panel_muted }
+        text battery_power { at: content_width, 198.5; anchor: right center; size: 14.64; family: "Adwaita Sans"; color: panel_ink }
+        text "battery health" { at: 0, 224; size: 14.64; family: "Adwaita Sans"; color: panel_muted }
+        text battery_health { at: content_width, 233.5; anchor: right center; size: 14.64; family: "Adwaita Sans"; color: panel_ink }
+        text "Brightness · {brightness}%" { at: 0, 260; size: 14.64; family: "Adwaita Sans"; color: panel_muted }
+        MaterialSlider(content_width, brightness, 5, 100, sage, brightness_set, 28) { move: 0, 293.6 }
+        ActionChip("󰒓  control center", 26) { move: 0, content_height - 36.6 }
+        text "No battery present" { at: 0, 74; size: 14.64; family: "Adwaita Sans"; color: panel_muted; show: not battery_present }
+    }
+}

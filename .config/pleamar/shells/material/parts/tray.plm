@@ -1,0 +1,20 @@
+part Tray {
+    group { show: panel == 9
+        text heading { at: 0, 0; width: content_width; lines: 1; size: 15.86; family: "Adwaita Sans"; color: panel_ink }
+        column tray_list { at: 0, 29.28; view: content_width, content_height - 29.28; step: 36.6; content: count * 36.6; gap: 0
+            for item in rows from offset {
+                group { size: content_width, 36.6; move: 0, offset * 36.6
+                    prop hot = 0 ~140ms
+                    box hit { from: 0, 0; size: content_width, 36.6; corner: 8.54; color: panel_elevated; opacity: hot; cursor: pointer; label: item.name }
+                    text item.name { at: 9.76, 18.3; anchor: left center; width: content_width - 30; lines: 1; size: 14.64; family: "Adwaita Sans"; color: mix(panel_ink, red, item.danger); opacity: if(item.allowed, 100%, 45%) }
+                    text item.detail { at: content_width - 10, 18.3; anchor: right center; size: 14.64; family: "Adwaita Sans"; color: panel_muted; show: not tray_root }
+                    on enter hit { hot: 1 ~140ms }
+                    on leave hit { hot: 0 ~140ms }
+                    on press hit { emit choose(item.index) }
+                }
+            }
+        }
+        on change floor(tray_list.scroll / 36.6) while panel == 9 and screen.index == origin { emit list_scrolled(floor(tray_list.scroll / 36.6)) }
+        on list_reset { tray_list.scroll: 0 }
+    }
+}

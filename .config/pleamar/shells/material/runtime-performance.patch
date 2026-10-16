@@ -1,0 +1,60 @@
+--- a/src/shape.wgsl
++++ b/src/shape.wgsl
+@@ -412,6 +412,13 @@
+     }
+     let light = clamp(1.0 - (local.y - el.light.y) / max(el.light.z, 1.0), 0.0, 1.0) * el.light.x;
+     tone += vec3<f32>(light) + vec3<f32>(el.color0.w) * smoothstep(-2.2, -0.4, d);
++    if (glass == 0.0) {
++        c = over(c, tone, coverage(d) * alpha);
++        if (el.light.w > 0.0) {
++            c = over(c, el.border.rgb, coverage(abs(d + el.light.w * 0.5) - el.light.w * 0.5) * alpha);
++        }
++        return c;
++    }
+     // Where the edge points: towards where the distance grows.
+     let g = vec2<f32>(dpdx(d), dpdy(d));
+     let normal = g / max(length(g), 1e-6);
+--- a/src/shaders.rs
++++ b/src/shaders.rs
+@@ -339,6 +339,21 @@
+     use super::*;
+ 
+     #[test]
++    fn base_shader_validates_with_and_without_user_shaders() {
++        let user = UserShader {
++            code: "fn u0_shade(s: Shader) -> vec4<f32> { return vec4<f32>(s.uv, 0.0, 1.0); }".into(),
++            animated: false,
++            pointer: false,
++            behind: false,
++        };
++        for shaders in [Vec::new(), vec![user]] {
++            let code = format!("{}{}", include_str!("shape.wgsl"), generate(&shaders));
++            let module = naga::front::wgsl::parse_str(&code).unwrap();
++            naga::valid::Validator::new(naga::valid::ValidationFlags::all(), naga::valid::Capabilities::all()).validate(&module).unwrap();
++        }
++    }
++
++    #[test]
+     fn names_are_prefixed_but_not_fields_or_comments() {
+         let own: HashSet<String> = ["wave", "shade"].iter().map(|s| s.to_string()).collect();
+         let out = prefix("// wave here\nfn wave(x: f32) -> f32 { return x; }\nfn shade(s: Shader) -> vec4<f32> { let w = wave(s.time); return vec4<f32>(w); }", &own, "u0_");
+--- /dev/null
++++ b/tests/optimization-fixture.plm
+@@ -0,0 +1,17 @@
++scene OptimizationFixture {
++    surface { size: 640, 480; anchor: center; reserve: -1; keyboard: none; level: overlay }
++    box { from: 0, 0; size: 640, 480; color: #282828 }
++    box { from: 20, 20; size: 180, 90; corner: 18; color: #a9b665 }
++    box { from: 220, 20; size: 180, 90; corner: 18; stroke: 2.3; color: #d8a657 }
++    body { color: #d4be98; shadow: 3, 8, 14, 40%; rim: 8%; box { from: 420, 20; size: 180, 90; corner: 24 } }
++    body { gradient: 20, 150 to 200, 250, #a9b665, #ea6962; box { from: 20, 150; size: 180, 100; corner: 20 } }
++    body { color: #83a598; ellipse { at: 280, 190; radius: 42 }; box { from: 290, 150; size: 100, 90; corner: 14; blend: 12 } }
++    group { opacity: 65%; rotate: 7deg; pivot: 500, 200
++        box { from: 425, 150; size: 150, 100; corner: 20; color: #d3869b }
++        ellipse { at: 540, 185; radius: 34; color: #8ec07c }
++    }
++    body { color: #d4be98; glass: 75%; shadow: 0, 4, 10, 30%; box { from: 20, 300; size: 260, 110; corner: 25 } }
++    text "plain, stroked, shadowed, merged" { at: 24, 436; size: 18; family: "Adwaita Sans"; color: #d4be98 }
++    text "glass and text" { at: 45, 340; size: 23; family: "Adwaita Sans"; color: #282828 }
++    ellipse { at: 470, 350; radius: 60; rotate: -18deg; color: #d8a657; opacity: 58% }
++}

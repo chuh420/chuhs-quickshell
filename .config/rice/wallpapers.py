@@ -53,7 +53,7 @@ try:
     action = sys.argv[1] if len(sys.argv) > 1 else 'list'
     if action == 'list':
         files = sorted((p for p in folder.iterdir() if p.is_file() and p.suffix.lower() in extensions), key=lambda p: p.name.casefold()) if folder.is_dir() else []
-        print(json.dumps({'current': str(current()), 'items': [{'path': str(p.resolve()), 'name': p.stem, 'url': p.resolve().as_uri()} for p in files]}, ensure_ascii=False))
+        print(json.dumps({'current': str(current()), 'items': [{'path': str(p.resolve()), 'name': p.stem, 'url': p.resolve().as_uri(), 'revision': str(p.stat().st_mtime_ns) + ':' + str(p.stat().st_size)} for p in files]}, ensure_ascii=False))
     elif action == 'apply':
         apply(Path(sys.argv[2]))
     elif action == 'restore':

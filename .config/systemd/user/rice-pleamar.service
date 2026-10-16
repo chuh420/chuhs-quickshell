@@ -1,0 +1,13 @@
+[Unit]
+Description=Pleamar material desktop shell
+Conflicts=rice-quickshell.service
+StartLimitIntervalSec=30
+StartLimitBurst=3
+
+[Service]
+Environment=PLEAMAR_FIFO=1
+Type=simple
+ExecStart=/home/chuh/.local/bin/pleamar --scene /home/chuh/.config/pleamar/shells/material/material.plm --no-hud
+Restart=on-failure
+RestartMode=direct
+RestartSec=2

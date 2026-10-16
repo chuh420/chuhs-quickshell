@@ -1,0 +1,5 @@
+[Unit]
+Description=Rice desktop session helpers
+PartOf=graphical-session.target
+Wants=hyprpaper.service hypridle.service swaync.service rice-osd.service rice-clipboard.service
+After=graphical-session-pre.target
