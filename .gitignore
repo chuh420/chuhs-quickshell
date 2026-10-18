@@ -9,3 +9,4 @@ __pycache__/
 
 .env
 .git-credentials
+/.config/quickshell/material/hidden-applications.json

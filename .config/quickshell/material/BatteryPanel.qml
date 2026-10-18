@@ -5,7 +5,7 @@ ColumnLayout {
     required property var shell
     spacing: 14
     RowLayout {
-        PanelLabel { text: "Battery"; font.pixelSize: 18; Layout.fillWidth: true }
+        PanelLabel { text: "battery"; font.pixelSize: 18; Layout.fillWidth: true }
         PanelLabel { text: shell.stats.batteryStatus || ""; color: Theme.green }
     }
     PanelLabel { text: shell.stats.battery + "%"; font.pixelSize: 42; font.weight: Font.Light }
@@ -17,7 +17,7 @@ ColumnLayout {
         Rectangle { width: parent.width * shell.stats.battery / 100; height: 8; radius: 4; color: shell.stats.battery < 20 ? Theme.red : Theme.green }
     }
     Repeater {
-        model: [["Remaining", shell.stats.batteryTime || "Calculating…"], ["Power draw", shell.stats.batteryPower ? shell.stats.batteryPower + " W" : "—"], ["Battery health", shell.stats.batteryHealth ? shell.stats.batteryHealth + "%" : "—"]]
+        model: [["remaining", shell.stats.batteryTime || "Calculating…"], ["power draw", shell.stats.batteryPower ? shell.stats.batteryPower + " W" : "—"], ["battery health", shell.stats.batteryHealth ? shell.stats.batteryHealth + "%" : "—"]]
         RowLayout {
             required property var modelData
             Layout.fillWidth: true
@@ -28,5 +28,5 @@ ColumnLayout {
     PanelLabel { text: "Brightness · " + shell.stats.brightness + "%"; color: Theme.muted }
     MaterialSlider { Layout.fillWidth: true; from: 5; value: shell.stats.brightness; shortcut: "XF86MonBrightnessUp / XF86MonBrightnessDown"; onMoved: Quickshell.execDetached(["brightnessctl", "set", Math.round(value) + "%"]) }
     Item { Layout.fillHeight: true }
-    Chip { label: "󰒓  Control center"; onClicked: shell.toggle("control") }
+    Chip { label: "󰒓  control center"; onClicked: shell.toggle("control") }
 }

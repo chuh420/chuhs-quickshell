@@ -1,10 +1,10 @@
 # material shell for pleamar
 
-this shell ports the existing Gruvbox Material desktop to pleamar 0.4.2 (`ecc52f63f8179bc974a084180ddb2fdf49273edf`) with the local text rendering and fill optimization patches. Pleamar is the session default. Quickshell stays installed with its configuration for manual use.
+this shell ports the existing Gruvbox Material desktop to pleamar 0.4.2 (`ecc52f63f8179bc974a084180ddb2fdf49273edf`) with the local text rendering and fill optimization patches. Quickshell is the session default. this configuration remains available for manual Pleamar sessions; see [desktop setup](../../../rice/README.md).
 
 ## running
 
-Hyprland starts `~/.config/rice/start`, which imports the session environment and starts `rice-pleamar.service` and `rice-session.target`. `chuhshell` shortcuts and application/icon refreshes use Pleamar. the service restarts Pleamar after failures; it does not restore Quickshell.
+Hyprland starts Quickshell through `rice-quickshell.service`. use `systemctl --user start rice-pleamar.service` for a manual Pleamar session; the services conflict. desktop shortcuts and application/icon refreshes continue to target Quickshell. use `pleamar-shell` for Pleamar panels.
 
 use `systemctl --user restart rice-pleamar.service` to restart the shell and `journalctl --user -u rice-pleamar.service` for logs. `pleamar-shell launcher`, `menu`, `calendar`, `wallpapers`, `wifi`, `bluetooth`, `audio`, `battery`, and `close` address panels. check syntax with `pleamar --check ~/.config/pleamar/shells/material/material.plm`.
 
@@ -12,7 +12,7 @@ use `systemctl --user restart rice-pleamar.service` to restart the shell and `jo
 
 `rice-session.target` starts the packaged `hyprpaper.service`, `hypridle.service` and `swaync.service`, plus `rice-osd.service` and `rice-clipboard.service`. local drop-ins give the packaged services the same restart policy as the other helpers. each helper restarts after two seconds even if it exits with status zero. inspect a helper with `systemctl --user status UNIT`; stop the group with `systemctl --user stop rice-session.target`. repeated startup leaves running helpers in place.
 
-the Pleamar unit retains `PLEAMAR_FIFO=1` on this Intel/Hyprland setup. `hyprland.lua`, loaded from Hyprland's configuration, disables compositor animation for the `pleamar` layer namespace. Pleamar retains its spring, tilt and content animations. other layer surfaces retain their configured animations.
+the Pleamar unit retains `PLEAMAR_FIFO=1` on this Intel/Hyprland setup. `hyprland.lua` can disable compositor animation for the `pleamar` layer namespace during manual testing; the default Hyprland integration now targets Quickshell. Pleamar retains its spring, tilt and content animations. other layer surfaces retain their configured animations.
 
 ## layout and adapters
 
@@ -20,7 +20,7 @@ the Pleamar unit retains `PLEAMAR_FIFO=1` on this Intel/Hyprland setup. `hyprlan
 
 The shell reuses rice resource, status, keyboard, and wallpaper tools. Its tray adapter preserves process identity checks and reads ItemIsMenu for menu-only icons. Its own Wi-Fi worker handles iwd and interactive BlueZ pairing; pleamar's built-in Bluetooth command backend is not used. Notifications stay with swaync. Audio uses pleamar's PulseAudio service and device IDs.
 
-`helpers/desktop.py watch` keeps a Gio application catalog and a Unicode casefolded search index in memory. the launcher sends queries over stdin and receives JSON lines over stdout, with a generation number to discard obsolete results. searching has no debounce or per-query process startup. reopening the launcher uses the cached unfiltered list. Gio's application monitor refreshes the catalog when desktop entries change; the existing asset service still restarts Pleamar for icon updates. the worker restarts after two seconds if it exits.
+`helpers/desktop.py watch` keeps a Gio application catalog and a Unicode casefolded search index in memory. the launcher sends queries over stdin and receives JSON lines over stdout, with a generation number to discard obsolete results. searching has no debounce or per-query process startup. reopening the launcher uses the cached unfiltered list. Gio's application monitor refreshes the catalog when desktop entries change; the asset service now restarts Quickshell; restart the Pleamar service manually after icon updates. the worker restarts after two seconds if it exits.
 
 hidden application IDs live in `~/.local/state/pleamar/material/hidden-applications.json`. the worker serializes hidden-state writes with search requests. terminal applications launch through kitty with their desktop entry's working directory. the helper expands `%c`, `%k`, `%i` and `%%`, removes file placeholders when launching without files, and rejects unknown field codes. it passes an argument list without invoking a shell. expansion follows the [desktop entry specification](https://specifications.freedesktop.org/desktop-entry/latest/exec-variables.html).
 
@@ -40,12 +40,6 @@ The executable lives at `~/.local/bin/pleamar`; source lives at `~/dev/pleamar`.
 
 Build with `taskset -c 0,1 nice -n 10 cargo build --release --locked -j 2` from the source folder, then install `target/release/pleamar` at `~/.local/bin/pleamar`. This source build installs the runtime alone. the running Pleamar service can remain active during a source build. install the new binary through a temporary file and rename it, then restart `rice-pleamar.service`. Build `helpers/idle-inhibit` with `helpers/build-idle-inhibit` before the first test. ImageMagick supplies cached gallery previews, including AVIF and BMP.
 
-## manual quickshell session
+## return to quickshell
 
-`systemctl --user start rice-quickshell.service` replaces Pleamar with the retained Quickshell configuration. `systemctl --user start rice-pleamar.service` returns to Pleamar. the services conflict, so only one runs. panel shortcuts and asset refreshes continue to target Pleamar; a new login starts Pleamar.
-
-## migration checks
-
-Validated on the internal 1920×1080 output: scene syntax, complete panel drawing, 42 px reservation, wrapper IPC, application search and hidden-state persistence, wallpaper previews and navigation, Escape and pointer clicks outside panels, Wayland idle inhibition, service restarts and helper cleanup. A DBus test client exercised tray activation, 120-unit wheel steps, a 30-entry menu, nested entries, and custom quit mapping. Notifications remain owned by swaync.
-
-Hardware interaction still needs a controlled check for Wi-Fi connections/password failures, Bluetooth pairing prompts, and audio device changes. Real application tray behavior and multiple outputs need user testing. the startup script now selects Pleamar; a full logout/login check remains pending.
+`systemctl --user start rice-quickshell.service` replaces Pleamar. the next login also starts Quickshell. Pleamar's hidden applications remain in its own state directory; later changes do not synchronize between shells.

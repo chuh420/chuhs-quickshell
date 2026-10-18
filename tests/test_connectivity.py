@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 
-HELPER = Path(__file__).resolve().parents[1] / '.config/pleamar/shells/material/helpers/wifi.py'
+HELPER = Path(__file__).resolve().parents[1] / '.config/quickshell/material/helpers/wifi.py'
 spec = importlib.util.spec_from_file_location('connectivity', HELPER)
 connectivity = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(connectivity)

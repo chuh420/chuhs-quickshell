@@ -9,11 +9,11 @@ ColumnLayout {
     spacing: 12
     PwObjectTracker { objects: [view.mic].concat(Pipewire.nodes.values.filter(n => n.audio && !n.isStream)) }
     RowLayout {
-        PanelLabel { text: "Sound"; font.pixelSize: 18; Layout.fillWidth: true }
+        PanelLabel { text: "sound"; font.pixelSize: 18; Layout.fillWidth: true }
         Chip { label: shell.muted ? "󰖁" : "󰕾"; shortcut: "XF86AudioMute"; ink: shell.muted ? Theme.red : Theme.green; onClicked: if (shell.sink && shell.sink.audio) shell.sink.audio.muted = !shell.muted }
     }
     RowLayout {
-        PanelLabel { text: "Output"; color: Theme.muted; Layout.fillWidth: true }
+        PanelLabel { text: "output"; color: Theme.muted; Layout.fillWidth: true }
         PanelLabel { text: shell.volume + "%" }
     }
     MaterialSlider { Layout.fillWidth: true; value: shell.volume; shortcut: "XF86AudioRaiseVolume / XF86AudioLowerVolume"; onMoved: if (shell.sink && shell.sink.audio) shell.sink.audio.volume = value / 100 }
@@ -29,8 +29,8 @@ ColumnLayout {
     }
     Rectangle { Layout.fillWidth: true; height: 1; color: Theme.line }
     RowLayout {
-        PanelLabel { text: "Microphone"; color: Theme.muted; Layout.fillWidth: true }
-        Chip { label: view.mic && view.mic.audio && !view.mic.audio.muted ? "ON" : "MUTED"; shortcut: "XF86AudioMicMute"; ink: view.mic && view.mic.audio && view.mic.audio.muted ? Theme.red : Theme.green; onClicked: if (view.mic && view.mic.audio) view.mic.audio.muted = !view.mic.audio.muted }
+        PanelLabel { text: "microphone"; color: Theme.muted; Layout.fillWidth: true }
+        Chip { label: view.mic && view.mic.audio && !view.mic.audio.muted ? "on" : "muted"; shortcut: "XF86AudioMicMute"; ink: view.mic && view.mic.audio && view.mic.audio.muted ? Theme.red : Theme.green; onClicked: if (view.mic && view.mic.audio) view.mic.audio.muted = !view.mic.audio.muted }
     }
     MaterialSlider { Layout.fillWidth: true; value: view.mic && view.mic.audio ? view.mic.audio.volume * 100 : 0; onMoved: if (view.mic && view.mic.audio) view.mic.audio.volume = value / 100 }
     Repeater {
@@ -45,7 +45,7 @@ ColumnLayout {
     }
     Item { Layout.fillHeight: true }
     RowLayout {
-        Chip { label: "Mixer ↗"; onClicked: { shell.panel = ""; shell.run("audio") } }
+        Chip { label: "mixer ↗"; onClicked: { shell.panel = ""; shell.run("audio") } }
         Item { Layout.fillWidth: true }
         Chip { label: "󰒓"; onClicked: shell.toggle("control") }
     }

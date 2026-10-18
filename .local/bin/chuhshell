@@ -1,10 +1,12 @@
 #!/bin/bash
 shell_call() {
-    /home/chuh/.local/bin/pleamar --say material "emit $1"
+    /usr/bin/quickshell ipc -c material call shell "$1"
 }
 case "$1" in
     launcher) shell_call launcher ;;
     menu) shell_call menu ;;
+    calendar|wallpapers|wifi|battery|awake|close) shell_call "$1" ;;
+    audio-panel) shell_call audio ;;
     notifications) shell_call close; swaync-client -t ;;
     volume-up) swayosd-client --max-volume 100 --output-volume raise ;;
     volume-down) swayosd-client --output-volume lower ;;

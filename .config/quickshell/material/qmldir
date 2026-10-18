@@ -7,3 +7,6 @@ BatteryPanel 1.0 BatteryPanel.qml
 PanelLabel 1.0 PanelLabel.qml
 MaterialSlider 1.0 MaterialSlider.qml
 BindToolTip 1.0 BindToolTip.qml
+ControlPanel 1.0 ControlPanel.qml
+TrayPanel 1.0 TrayPanel.qml
+CalendarPanel 1.0 CalendarPanel.qml

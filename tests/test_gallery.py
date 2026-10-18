@@ -9,7 +9,7 @@ import time
 import unittest
 
 
-HELPER = Path(__file__).resolve().parents[1] / '.config/pleamar/shells/material/helpers/gallery.py'
+HELPER = Path(__file__).resolve().parents[1] / '.config/quickshell/material/helpers/gallery.py'
 
 
 class GalleryTests(unittest.TestCase):

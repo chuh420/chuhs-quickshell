@@ -2,24 +2,38 @@
 
 # chuh's quickshell
 
-a Pleamar panel and menus for hyprland in gruvbox material colors. active shell development lives in [pleamar](https://github.com/chuh420/pleamar). this repository retains the combined desktop configuration, including the Pleamar shell, retained Quickshell qml sources, python helpers, a startup script, wallpapers, browser styles and user services for refreshing the shell.
+a Quickshell panel and menus for Hyprland in gruvbox material colors. the configuration includes a control center, application search, calendar, Wi-Fi and Bluetooth settings, output and microphone controls, battery details, a wallpaper gallery and nested tray menus. the bar shows workspaces, time, resources and keyboard layout. QML provides panel, button and workspace animations.
 
-the panel shows workspaces, a clock, battery status, audio, network, bluetooth, keyboard layout, CPU usage, used RAM and a system tray. it includes application search, a calendar, a control center with a session-only Keep awake toggle and a wallpaper gallery. swaync handles notifications, hyprlock handles screen locking, and swayosd displays volume and brightness indicators.
+`.config` and `.local` mirror paths relative to the home directory. back up existing files before copying their contents. scripts contain `/home/chuh` paths; replace them for another account. Hyprland configuration and the wider system snapshot live in [dotfiles](https://github.com/chuh420/dotfiles/tree/main/hyprland%20setup).
 
-`.config` and `.local` mirror paths relative to the home directory. back up existing files before copying their contents. start the shell with `~/.config/rice/start`, which imports the session environment, starts `rice-pleamar.service` and `rice-session.target`. systemd supervises the desktop helpers. the service restarts the shell after failures; application and icon changes restart Pleamar through `rice-shell-assets.service`. inspect logs with `journalctl --user -u rice-pleamar.service`.
+## setup
 
-required tools include Pleamar 0.4.2 with the local text rendering and fill optimization patches, ImageMagick, python, python-dbus, python-gobject, qt, pipewire, wireplumber, bluez, iwd, hyprpaper, hypridle, hyprlock, swaync, swayosd, rofi, wl-clipboard, cliphist, grim, slurp, satty and pavucontrol. the original system uses iwd for networking and systemd-resolved for name resolution. system services and hyprland configuration are stored in the corresponding dotfiles setup.
+required tools include Quickshell 0.3.2, Qt 6, Python, python-dbus, python-gobject, ImageMagick, PipeWire, WirePlumber, BlueZ, iwd, hyprpaper, hypridle, hyprlock, swaync, swayosd, rofi, wl-clipboard, cliphist, grim, slurp, satty, kitty and pavucontrol. the original system uses systemd-resolved for DNS. Pleamar is optional.
 
-scripts contain `/home/chuh` paths; replace them when using a different account. add gallery wallpapers to the user's wallpaper directory under pictures. clipboard history and shell state are generated locally and excluded from this repository.
+after copying the user services, run:
 
-after copying the user services, run `systemctl --user daemon-reload` and `systemctl --user enable --now rice-shell-assets.path`. configure key bindings and hyprland integration separately. helper documentation is stored alongside the helpers.
+```sh
+systemctl --user daemon-reload
+systemctl --user enable --now rice-shell-assets.path
+~/.config/rice/start
+```
 
-Wi-Fi uses event-driven updates and system status uses a persistent helper to reduce background work. See the helper documentation for refresh intervals.
+configure Hyprland startup and key bindings using the dotfiles snapshot. its `rice.lua` disables compositor animations for `material-bar` and `material-overlay`, which use QML animations. the bar reserves 42 px.
 
-## shell services
+`rice-quickshell.service` runs the shell. `rice-session.target` supervises wallpaper, idle, notification, OSD and clipboard helpers. shortcuts and application/icon refreshes target Quickshell. restart after configuration changes with `systemctl --user restart rice-quickshell.service`; logs are available through `journalctl --user -u rice-quickshell.service`. restart the service if a QML reload leaves IPC reporting “not ready to accept queries yet”.
 
-Pleamar is the session default. its [README](.config/pleamar/shells/material/readme.md) covers the runtime build, adapters and manual switching. build the runtime and idle inhibitor before the first launch.
+## controls and state
 
-`chuhshell` shortcuts and asset refreshes always use Pleamar. Quickshell remains installed with its configuration and service for manual use. `systemctl --user start rice-quickshell.service` replaces Pleamar; `systemctl --user start rice-pleamar.service` returns to Pleamar. the services conflict, and a new login starts Pleamar. there is no automatic fallback to Quickshell.
+use `Super + D` for applications, `Super + Space` for the control center, `Super + B` for wallpapers, `Super + N` for notifications and `Super + C` for clipboard history. Escape closes a panel. click the clock for the calendar; scroll over audio to change volume or right-click it to mute. keep awake holds a Wayland idle inhibitor until disabled or the shell restarts.
 
-[the audit](docs/audit-2026-10-16.md) and [renderer study](docs/optimization-2026-10-16.md) cover fixes, measurements and validation limits. run `python -m unittest discover -s tests -v` for the helper checks.
+application search handles Unicode names and metadata. `Ctrl + H` hides the selected entry; `Ctrl + Shift + H` shows hidden entries. terminal applications launch through kitty with their desktop arguments and working directory. hidden IDs are generated under `~/.local/state/quickshell/material` and are excluded from this repository.
+
+add wallpaper images to `~/Pictures/Wallpapers`. the gallery creates previews for visible rows, cancels obsolete conversions and caches previews under `~/.cache/quickshell/material`. applying an image updates hyprpaper and hyprlock. wallpaper selection, caches and clipboard history stay local.
+
+[the desktop guide](.config/rice/README.md) covers panel commands and helper behavior. helper tests run with `python -m unittest discover -s tests -v`. physical reconnection and pairing, audio device changes, multiple outputs and a full logout/login still need hardware checks.
+
+## retained Pleamar
+
+the [Pleamar configuration](.config/pleamar/shells/material/readme.md), runtime patches and performance tools remain available. `systemctl --user start rice-pleamar.service` replaces Quickshell for a manual session; `systemctl --user start rice-quickshell.service` returns to Quickshell. the services conflict. shortcuts, asset refreshes and the next login target Quickshell. use `pleamar-shell NAME` to control Pleamar panels.
+
+historical Pleamar measurements live in [the audit](docs/audit-2026-10-16.md) and [renderer study](docs/optimization-2026-10-16.md).

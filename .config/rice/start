@@ -2,4 +2,4 @@
 set -euo pipefail
 python /home/chuh/.config/rice/wallpapers.py restore
 systemctl --user import-environment WAYLAND_DISPLAY DISPLAY HYPRLAND_INSTANCE_SIGNATURE
-systemctl --user start rice-session.target rice-pleamar.service
+systemctl --user start rice-session.target rice-quickshell.service

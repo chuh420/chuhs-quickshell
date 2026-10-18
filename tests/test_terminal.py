@@ -7,7 +7,7 @@ import time
 import unittest
 
 
-HELPER = Path(__file__).resolve().parents[1] / '.config/pleamar/shells/material/helpers/desktop.py'
+HELPER = Path(__file__).resolve().parents[1] / '.config/quickshell/material/helpers/desktop.py'
 
 
 class TerminalLaunchTests(unittest.TestCase):

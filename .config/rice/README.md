@@ -1,38 +1,42 @@
 # still / material
 
-Pleamar is the default shell in `~/.config/pleamar/shells/material`. its [README](../pleamar/shells/material/readme.md) covers runtime setup and services. Quickshell remains installed with its configuration in `~/.config/quickshell/material` for manual use.
+Quickshell runs the material desktop from `~/.config/quickshell/material`. Hyprland calls `~/.config/rice/start`, which starts `rice-quickshell.service` and `rice-session.target`. panel shortcuts and icon refreshes target Quickshell.
 
-Hyprland loads `~/.config/hypr/rice.lua`; `~/.config/rice/start` starts `rice-pleamar.service` and `rice-session.target`. systemd supervises the wallpaper, idle, notification, OSD and clipboard helpers and restarts them after they exit. `~/.local/bin/chuhshell` routes panel commands to Pleamar. inspect logs with `journalctl --user -u rice-pleamar.service`.
+restart with `systemctl --user restart rice-quickshell.service`; inspect logs with `journalctl --user -u rice-quickshell.service`. after editing QML, restart the service if IPC reports “not ready to accept queries yet”. the session target supervises hyprpaper, hypridle, swaync, swayosd and clipboard history. restarting the shell keeps these helpers running.
 
-- `Super + D`: applications; search, arrows, Enter and Escape.
-- `Super + Space`: control center. `Super + N`: notifications. `Super + C`: clipboard history.
-- `Super + Ctrl + L`: lock. `Print`: select a screenshot region and open Satty. `Ctrl + Print`: capture the screen to a file and clipboard.
-- click the clock for the calendar or a workspace number to switch desktops.
-- scroll over audio to change volume; right-click to mute. right-click the control center volume value for pavucontrol.
-- connectivity tiles open the native Wi-Fi and Bluetooth panels. right-click the Bluetooth tile to toggle power.
+## controls
 
-Pleamar reloads scene and logic changes automatically. use `hyprctl reload` for Hyprland changes. GTK and Qt applications may need restarting to apply themes.
+| action | shortcut |
+| --- | --- |
+| application search | `Super + D` |
+| control center | `Super + Space` |
+| wallpaper gallery | `Super + B` |
+| notifications | `Super + N` |
+| clipboard history | `Super + C` |
+| lock | `Super + Ctrl + L` |
+| screenshot selection / Satty | `Print` |
+| screenshot to file and clipboard | `Ctrl + Print` |
 
-## Wallpapers
+click the clock for the calendar. click a workspace to switch desktops. the bar shows CPU, RAM, keyboard layout, connectivity, audio and battery. click the keyboard indicator to change layouts; `Alt + Shift` also works. scroll over audio to change volume; right-click to mute.
 
-Super + B opens the Pleamar wallpaper gallery. The control center also has a wallpaper button. Click a preview to apply it; use arrow keys and Enter for keyboard selection. Escape closes the gallery.
+the control center opens Wi-Fi and Bluetooth settings. right-click its Bluetooth tile to toggle power. right-click its volume value for the sound panel. the sound panel selects output and microphone devices and opens pavucontrol through “mixer”. keep awake holds a Wayland idle inhibitor on the bar while enabled and resets after a shell restart. manual locking remains available.
 
-Images are read from `~/Pictures/Wallpapers`. Reopen the gallery or click Refresh after adding images. PNG, JPEG, WebP, AVIF and BMP are supported.
+## applications and tray
 
-The choice is saved in `~/.local/state/rice/wallpaper.json` and restored on login. Hyprlock uses the same selected image. Image paths are passed as separate process arguments, and cached symlinks keep hyprpaper configuration safe for filenames containing spaces or commas.
+the application catalog supports Unicode search across names and descriptions. use arrows and Enter to launch, `Ctrl + H` to hide the selected application, and `Ctrl + Shift + H` to show hidden applications. hidden IDs live in `~/.local/state/quickshell/material/hidden-applications.json`. terminal entries launch through kitty with their desktop arguments and working directory.
 
-## Keyboard layout
+right-click a tray icon for open, application menu and quit. menu-only icons open their menu on a left click. nested menus retain their parent menus. use arrows, Enter and Left to navigate; Escape closes the panel. quit resolves the tray process identity before sending a termination signal.
 
-The bar shows EN/RU for the main keyboard. Click the indicator to switch layouts, or use the existing Alt + Shift shortcut. Changes are handled through Hyprland events and show a short system notification. Consecutive layout notifications replace one another and are marked transient.
+## wallpapers
 
-## Resource usage
+add PNG, JPEG, WebP, AVIF or BMP images to `~/Pictures/Wallpapers`. reopen the gallery or select refresh. click a preview to apply it, or use arrows and Enter. the gallery creates previews for the visible rows and caches them in `~/.cache/quickshell/material/wallpapers`; closing it cancels pending conversions.
 
-The bar shows total CPU usage and used RAM in GiB, updated every two seconds by `resources.py`. RAM usage excludes available reclaimable cache.
+the shared wallpaper helper saves the choice in `~/.local/state/rice/wallpaper.json` and updates hyprpaper and hyprlock. login restores the saved image.
 
-## Background updates
+## panel commands
 
-Wi-Fi updates follow iwd D-Bus signals with a 60-second fallback refresh; the open Wi-Fi panel refreshes every 10 seconds. Unchanged states are suppressed. The persistent `status.py watch` helper reads brightness and wired routes every five seconds, battery data every 30 seconds, and battery data every five seconds while its panel is open. Opening a panel requests an immediate status refresh. Running `status.py` without arguments still prints one snapshot. closed panels do not request detailed battery updates.
+`quickshell ipc -c material call shell NAME` accepts `launcher`, `menu`, `calendar`, `wallpapers`, `wifi`, `bluetooth`, `audio`, `battery` and `close`. `~/.local/bin/chuhshell` wraps panel and desktop actions. use `chuhshell audio-panel` for the sound panel and `chuhshell audio` for pavucontrol.
 
-## Keep awake
+## retained Pleamar
 
-The control center has a Keep awake toggle. While enabled, a Wayland idle inhibitor attached to a transparent helper surface prevents automatic locking and screen sleep, including while the control center is closed. Manual lock and suspend remain available. the toggle resets when Pleamar restarts or reloads.
+Pleamar and its configuration remain installed. `systemctl --user start rice-pleamar.service` replaces Quickshell for a manual session; `systemctl --user start rice-quickshell.service` returns to Quickshell. the services conflict. shortcuts, application refreshes and the next login use Quickshell; while testing Pleamar, use `pleamar-shell NAME` for its panels. see [Pleamar runtime](../pleamar/shells/material/readme.md).

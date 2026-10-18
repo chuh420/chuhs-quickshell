@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 
-HELPER = Path(__file__).resolve().parents[1] / '.config/pleamar/shells/material/helpers/desktop.py'
+HELPER = Path(__file__).resolve().parents[1] / '.config/quickshell/material/helpers/desktop.py'
 
 
 class DesktopWorkerTests(unittest.TestCase):
@@ -59,7 +59,7 @@ class DesktopWorkerTests(unittest.TestCase):
     def test_hidden_persistence_and_invalid_requests(self):
         result = self.request(query='', generation=1, hidden=['audit.desktop'])
         self.assertEqual(result['hidden'], ['audit.desktop'])
-        state = self.root / '.local/state/pleamar/material/hidden-applications.json'
+        state = self.root / '.local/state/quickshell/material/hidden-applications.json'
         self.assertEqual(json.loads(state.read_text()), ['audit.desktop'])
         self.assertIn('error', self.request(query='', generation=2, hidden='invalid'))
         self.assertIn('error', self.request(query=123, generation=3))

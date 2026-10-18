@@ -1,8 +1,12 @@
 [Unit]
-Description=Quickshell desktop shell
+Description=Quickshell material desktop shell
+Conflicts=rice-pleamar.service
+StartLimitIntervalSec=30
+StartLimitBurst=3
 
 [Service]
 Type=simple
 ExecStart=/usr/bin/quickshell -c material --no-duplicate
 Restart=on-failure
+RestartMode=direct
 RestartSec=2
