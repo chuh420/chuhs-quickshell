@@ -1,27 +1,33 @@
 #!/bin/bash
 shell_call() {
-    /usr/bin/quickshell ipc -c material call shell "$1"
+    /usr/bin/quickshell ipc -c material call shell "$1" 2>/dev/null
+}
+rofi_clipboard() { cliphist list | rofi -dmenu -p 'Clipboard' | cliphist decode | wl-copy; }
+rofi_power() {
+    choice=$(printf 'Lock\nSleep\nRestart\nPower off' | rofi -dmenu -p 'Session')
+    case "$choice" in Lock) "$0" lock ;; Sleep) systemctl suspend ;; Restart) systemctl reboot ;; "Power off") systemctl poweroff ;; esac
 }
 case "$1" in
     launcher) shell_call launcher ;;
     menu) shell_call menu ;;
-    calendar|wallpapers|wifi|battery|awake|close) shell_call "$1" ;;
+    calendar|wallpapers|wifi|battery|awake|close|dnd) shell_call "$1" ;;
     audio-panel) shell_call audio ;;
-    notifications) shell_call close; swaync-client -t ;;
-    volume-up) swayosd-client --max-volume 100 --output-volume raise ;;
-    volume-down) swayosd-client --output-volume lower ;;
-    volume-mute) swayosd-client --output-volume mute-toggle ;;
-    microphone-mute) swayosd-client --input-volume mute-toggle ;;
-    brightness-key-up) swayosd-client --brightness +5 ;;
-    brightness-key-down) swayosd-client --min-brightness 5 --brightness -5 ;;
+    notifications) shell_call notifications || swaync-client -t ;;
+    volume-up) shell_call volumeUp || swayosd-client --max-volume 100 --output-volume raise || wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+ ;;
+    volume-down) shell_call volumeDown || swayosd-client --output-volume lower || wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- ;;
+    volume-mute) shell_call volumeMute || swayosd-client --output-volume mute-toggle || wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle ;;
+    microphone-mute) shell_call micMute || swayosd-client --input-volume mute-toggle || wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
+    brightness-key-up) shell_call brightnessUp || swayosd-client --brightness +5 || brightnessctl set 5%+ ;;
+    brightness-key-down) shell_call brightnessDown || swayosd-client --min-brightness 5 --brightness -5 || brightnessctl -n 5% set 5%- ;;
     audio) pavucontrol ;;
     network) shell_call wifi ;;
     bluetooth) shell_call bluetooth ;;
-    clipboard) shell_call close; cliphist list | rofi -dmenu -p 'Clipboard' | cliphist decode | wl-copy ;;
+    clipboard) shell_call clipboard || rofi_clipboard ;;
     lock) shell_call close; pidof hyprlock >/dev/null || hyprlock ;;
     suspend) systemctl suspend ;;
-    power) shell_call close; choice=$(printf 'Lock\nSleep\nRestart\nPower off' | rofi -dmenu -p 'Session'); case "$choice" in Lock) "$0" lock ;; Sleep) systemctl suspend ;; Restart) systemctl reboot ;; "Power off") systemctl poweroff ;; esac ;;
+    power) shell_call power || rofi_power ;;
     screenshot) shell_call close; region=$(slurp -b '#1d2021cc' -c '#a9b665' -w 2) || exit; mkdir -p "$HOME/Pictures/Screenshots"; file="$HOME/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png"; grim -g "$region" "$file" && satty --filename "$file" --copy-command wl-copy ;;
     screenshot-output) mkdir -p "$HOME/Pictures/Screenshots"; file="$HOME/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png"; grim "$file" && wl-copy < "$file" ;;
     wallpaper) shell_call wallpapers ;;
+    osd) /usr/bin/quickshell ipc -c material call shell osd "$2" "$3" 2>/dev/null ;;
 esac

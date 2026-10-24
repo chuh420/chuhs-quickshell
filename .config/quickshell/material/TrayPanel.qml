@@ -16,14 +16,14 @@ ColumnLayout {
         if (rootMenu) {
             if (item.action === 0) { shell.trayTarget.activate(); shell.panel = "" }
             else if (item.action === 1) showMenu = true
-            else { Quickshell.execDetached(["python", "/home/chuh/.config/quickshell/material/helpers/tray.py", "quit", shell.trayTarget.id, shell.trayTarget.title || shell.trayTarget.id]); shell.panel = "" }
+            else { Quickshell.execDetached(["python", Paths.helper("tray.py"), "quit", shell.trayTarget.id, shell.trayTarget.title || shell.trayTarget.id]); shell.panel = "" }
         } else if (item.hasChildren) stack = stack.concat([menuLevel.createObject(view, {menu: item})])
         else { item.triggered(); shell.panel = "" }
     }
     readonly property var rows: rootMenu ? [{text: "open application", action: 0}, {text: "application menu", action: 1}, {text: "quit application", action: 2}] : stack.length ? stack[stack.length - 1].children.values : opener.children.values
     QsMenuOpener { id: opener; menu: view.showMenu && shell.trayTarget ? shell.trayTarget.menu : null }
     Component { id: menuLevel; QsMenuOpener {} }
-    Connections { target: shell; function onPanelChanged() { if (shell.panel === "tray") { view.clearStack(); view.showMenu = shell.trayOnlyMenu } } }
+    Connections { target: shell; function onTrayTargetChanged() { view.clearStack(); view.showMenu = shell.trayOnlyMenu } }
     spacing: 8
     RowLayout {
         Layout.fillWidth: true

@@ -9,6 +9,8 @@ ToolTip {
     x: parent ? (parent.width - implicitWidth) / 2 : 0
     y: below && parent ? parent.height + 8 : -implicitHeight - 8
     margins: 8
+    enter: Transition { ParallelAnimation { NumberAnimation { property: "opacity"; from: 0; to: 1; duration: Theme.fast; easing.type: Easing.OutCubic } NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: Theme.normal; easing.type: Easing.OutBack } } }
+    exit: Transition { NumberAnimation { property: "opacity"; to: 0; duration: 100 } }
     horizontalPadding: Math.round(10 * Theme.uiScale)
     verticalPadding: Math.round(6 * Theme.uiScale)
     contentItem: Text {

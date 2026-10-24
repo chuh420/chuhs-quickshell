@@ -19,6 +19,7 @@ Rectangle {
     scale: mouse.pressed ? 0.94 : 1
     Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
     Behavior on color { ColorAnimation { duration: 140 } }
+    Behavior on ink { ColorAnimation { duration: Theme.normal } }
     Text { id: text; anchors.centerIn: parent; text: Array.from(root.label).map(value => value.codePointAt(0) >= 0xe000 ? '<span style="font-size: ' + root.iconSize + 'px">' + value + '</span>' : value === '&' ? '&amp;' : value === '<' ? '&lt;' : value === '>' ? '&gt;' : value).join(""); textFormat: Text.RichText; color: root.ink; font.family: Theme.icons; font.pixelSize: root.fontSize }
     BindToolTip {
         text: root.shortcut

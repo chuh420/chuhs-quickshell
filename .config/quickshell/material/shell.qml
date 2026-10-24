@@ -7,12 +7,42 @@ import Quickshell.Hyprland
 import Quickshell.Wayland
 import Quickshell.Services.SystemTray
 import Quickshell.Services.Pipewire
-import Quickshell.Bluetooth
+import Quickshell.Services.Notifications
+import Quickshell.Services.UPower
 
 ShellRoot {
     id: root
+    signal notificationArrived()
+    signal popupRefresh(int nid)
     property string panel: ""
+    property string displayedPanel: ""
+    property string contentPanel: ""
+    property string pendingContent: ""
+    property real panelAnchor: 0
+    property var panelScreen: Quickshell.screens[0]
     property bool keepAwake: false
+    readonly property var anchoredPanels: ["wifi", "bluetooth", "audio", "battery", "tray", "calendar", "notifications"]
+    readonly property var centeredPanels: ["launcher", "wallpapers", "clipboard", "power"]
+    readonly property bool modulePanel: ["wifi", "bluetooth", "audio", "battery", "calendar", "notifications"].includes(contentPanel)
+    readonly property var focusedScreen: Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) || Quickshell.screens[0]
+    property SystemClock clock: SystemClock { precision: SystemClock.Minutes }
+
+    function openAt(which, bar) { panelScreen = bar.screen; panelAnchor = 0; toggle(which, true) }
+    function openModule(which, x, bar) { panelScreen = bar.screen; panelAnchor = x; toggle(which, true) }
+    function openTray(item, onlyMenu, x, bar) {
+        panelScreen = bar.screen
+        panelAnchor = x
+        trayOnlyMenu = onlyMenu
+        trayExpanded = false
+        trayTarget = item
+        panel = "tray"
+    }
+    function toggle(which, preserveScreen = false) {
+        if (!preserveScreen) { panelScreen = focusedScreen; panelAnchor = 0 }
+        panel = panel === which ? "" : which
+    }
+    function run(action) { Quickshell.execDetached([Paths.chuhshell, action]) }
+
     property var hiddenApplications: []
     property var applications: []
     property string applicationQuery: ""
@@ -27,9 +57,10 @@ ShellRoot {
         applicationGeneration++
         desktopWorker.write(JSON.stringify({query: applicationQuery, generation: applicationGeneration, hidden: hiddenApplications}) + "\n")
     }
+    function launchApplication(id) { Quickshell.execDetached(["python", Paths.helper("desktop.py"), "launch", id]) }
     Process {
         id: desktopWorker
-        command: ["python", "/home/chuh/.config/quickshell/material/helpers/desktop.py", "watch"]
+        command: ["python", Paths.helper("desktop.py"), "watch"]
         running: true
         stdinEnabled: true
         stdout: SplitParser {
@@ -38,8 +69,8 @@ ShellRoot {
                     const value = JSON.parse(data)
                     if (value.error) { console.warn(value.error); return }
                     if (value.generation !== root.applicationGeneration || value.query !== root.applicationQuery) return
-                    root.applications = value.apps
-                    root.hiddenApplications = value.hidden
+                    if (JSON.stringify(value.apps) !== JSON.stringify(root.applications)) root.applications = value.apps
+                    if (JSON.stringify(value.hidden) !== JSON.stringify(root.hiddenApplications)) root.hiddenApplications = value.hidden
                 } catch(e) { console.warn(e) }
             }
         }
@@ -47,6 +78,7 @@ ShellRoot {
         onStarted: root.searchApplications(root.applicationQuery)
     }
     Timer { id: desktopRestart; interval: 2000; onTriggered: desktopWorker.running = true }
+
     property var bluetooth: ({powered: false, name: "", devices: [], discovering: false})
     property string bluetoothError: ""
     property var wifi: ({powered: false, networks: [], state: "", scanning: false, busy: false, message: ""})
@@ -54,16 +86,10 @@ ShellRoot {
     readonly property string networkName: wifi.connected ? wifi.network : stats.network
     property string wifiPrompt: ""
     property var bluetoothPrompt: ({name: "", mode: "", value: ""})
-    property var panelScreen: Quickshell.screens[0]
-    property real moduleX: 0
-    property string displayedPanel: ""
-    readonly property bool modulePanel: ["wifi", "bluetooth", "audio", "battery"].includes(displayedPanel)
-    function openAt(which, bar) { panelScreen = bar.screen; moduleX = 0; toggle(which, true) }
-    function openModule(which, item, bar) { panelScreen = bar.screen; moduleX = item.mapToItem(null, item.width / 2, 0).x; toggle(which, true) }
     function wifiCommand(data) { wifiWorker.write(JSON.stringify(data) + "\n") }
     Process {
         id: wifiWorker
-        command: ["python", "/home/chuh/.config/quickshell/material/helpers/wifi.py"]
+        command: ["python", Paths.helper("wifi.py")]
         running: true
         stdinEnabled: true
         stdout: SplitParser {
@@ -78,28 +104,28 @@ ShellRoot {
                 } catch(e) {}
             }
         }
-            onExited: wifiRestart.restart()
+        onExited: wifiRestart.restart()
     }
     Timer { id: wifiRestart; interval: 2000; onTriggered: wifiWorker.running = true }
+
     property bool trayOnlyMenu: false
     property bool trayExpanded: false
     property var trayTarget: null
-    property var trayBar: null
-    property real trayX: 0
+
     property var keyboardLayout: ({label: "…", name: "", device: ""})
     property bool keyboardInitialized: false
     Process {
         id: keyboardStatus
-        command: ["python", "/home/chuh/.config/rice/keyboard.py", "status"]
+        command: ["python", Paths.riceScript("keyboard.py"), "status"]
         running: true
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
                     const next = JSON.parse(text)
-                    if (root.keyboardInitialized && next.name !== root.keyboardLayout.name)
-                        Quickshell.execDetached(["python", "/home/chuh/.config/rice/keyboard.py", "notify", next.name])
+                    const changed = root.keyboardInitialized && next.name !== root.keyboardLayout.name
                     root.keyboardLayout = next
                     root.keyboardInitialized = true
+                    if (changed) root.showOsd("keyboard")
                 } catch(e) {}
             }
         }
@@ -113,12 +139,15 @@ ShellRoot {
         target: Hyprland
         function onRawEvent(event) {
             if (event.name === "activelayout" || event.name === "configreloaded") keyboardRefresh.restart()
+            if (event.name === "configreloaded") root.hotkeysPaused = false
         }
     }
+
     property var previews: ({})
+    function requestPreviews(items) { galleryWorker.write(JSON.stringify(items) + "\n") }
     Process {
         id: galleryWorker
-        command: ["python", "/home/chuh/.config/quickshell/material/helpers/gallery.py", "watch"]
+        command: ["python", Paths.helper("gallery.py"), "watch"]
         running: true
         stdinEnabled: true
         stdout: SplitParser {
@@ -131,32 +160,24 @@ ShellRoot {
         }
         onExited: galleryRestart.restart()
     }
-    Timer { id: galleryRestart; interval: 2000; onTriggered: { galleryWorker.running = true; if (root.panel === "wallpapers") wallpaperScan.running = true } }
+    Timer { id: galleryRestart; interval: 2000; onTriggered: { galleryWorker.running = true; if (root.panel === "wallpapers") root.refreshWallpapers() } }
+
     property var wallpapers: []
     property string currentWallpaper: ""
     property string wallpaperError: ""
-    onPanelChanged: {
-        if (panel) { closeDelay.stop(); displayedPanel = panel } else closeDelay.restart()
-        if (panel !== "wallpapers") galleryWorker.write("[]\n")
-        if (panel !== "bluetooth" && bluetooth.discovering) wifiCommand({action: "bt-scan", enabled: false})
-        if (panel === "launcher") searchApplications("")
-        wifiCommand({action: "panel", visible: panel === "wifi"})
-        if (status.running) status.write(JSON.stringify({detailed: panel === "battery"}) + "\n")
-        if (panel === "wallpapers" && !wallpaperScan.running) { wallpaperError = ""; wallpaperScan.running = true }
-        if (panel === "wifi" && wifi.powered && !wifi.scanning && !wifi.busy) wifiCommand({action: "scan"})
-        if (panel !== "bluetooth" && bluetoothPrompt.name) wifiCommand({action: "bluetooth-reply", accepted: false})
-        if (panel !== "wifi" && wifiPrompt) wifiCommand({action: "cancel"})
-    }
-    Timer { id: closeDelay; interval: 260; onTriggered: root.displayedPanel = "" }
-    function applyWallpaper(path) {
+    property bool wallpaperBusy: wallpaperApply.running
+    property var wallpaperOrigin: null
+    function refreshWallpapers() { if (!wallpaperScan.running) { wallpaperError = ""; wallpaperScan.running = true } }
+    function applyWallpaper(path, origin) {
         if (wallpaperApply.running) return
         wallpaperError = ""
-        wallpaperApply.command = ["python", "/home/chuh/.config/rice/wallpapers.py", "apply", path]
+        wallpaperOrigin = origin || null
+        wallpaperApply.command = ["python", Paths.riceScript("wallpapers.py"), "apply", path]
         wallpaperApply.running = true
     }
     Process {
         id: wallpaperScan
-        command: ["python", "/home/chuh/.config/rice/wallpapers.py", "list"]
+        command: ["python", Paths.riceScript("wallpapers.py"), "list"]
         stdout: StdioCollector {
             onStreamFinished: {
                 try { const data = JSON.parse(text); root.wallpapers = data.items; root.currentWallpaper = data.current }
@@ -172,10 +193,18 @@ ShellRoot {
             else if (!root.wallpaperError) root.wallpaperError = "Could not apply wallpaper"
         }
     }
+    FileView {
+        path: Paths.wallpaperState
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: { try { const path = JSON.parse(text()).path; if (path) root.currentWallpaper = path } catch(e) {} }
+        onLoadFailed: if (!root.currentWallpaper) root.currentWallpaper = Paths.riceScript("wallpaper.png")
+    }
+
     property var resources: ({cpu: null, ramUsed: 0, ramTotal: 0})
     Process {
         id: resourceMonitor
-        command: ["python", "/home/chuh/.config/rice/resources.py"]
+        command: ["python", Paths.riceScript("resources.py")]
         running: true
         stdout: SplitParser {
             onRead: data => {
@@ -187,21 +216,11 @@ ShellRoot {
             }
         }
     }
-    property var stats: ({battery: 0, present: false, charging: false, network: "Offline", connected: false, brightness: 50})
-    property var sink: Pipewire.defaultAudioSink
-    readonly property var adapter: ({enabled: bluetooth.powered, name: bluetooth.name, discovering: bluetooth.discovering})
-    property int volume: sink && sink.audio ? Math.round(sink.audio.volume * 100) : 0
-    property bool muted: sink && sink.audio ? sink.audio.muted : true
-    property int wantedBrightness: 50
-    function setBrightness(value) { wantedBrightness = Math.round(value); if (!brightnessUpdate.running) brightnessUpdate.start() }
-    Timer { id: brightnessUpdate; interval: 80; onTriggered: Quickshell.execDetached(["brightnessctl", "set", root.wantedBrightness + "%"]) }
-    function run(action) { Quickshell.execDetached(["/home/chuh/.local/bin/chuhshell", action]) }
-    function toggle(which, preserveScreen = false) { if (!preserveScreen) { panelScreen = Quickshell.screens.find(s => s.name === Hyprland.focusedMonitor?.name) || Quickshell.screens[0]; moduleX = 0 }; panel = panel === which ? "" : which }
-    PwObjectTracker { objects: [root.sink] }
-    SystemClock { id: clock; precision: SystemClock.Minutes }
+
+    property var stats: ({network: "Offline", connected: false, brightness: 50})
     Process {
         id: status
-        command: ["python", "/home/chuh/.config/rice/status.py", "watch"]
+        command: ["python", Paths.riceScript("status.py"), "watch"]
         running: true
         stdinEnabled: true
         stdout: SplitParser {
@@ -209,192 +228,254 @@ ShellRoot {
                 try {
                     const value = JSON.parse(data)
                     if (JSON.stringify(value) !== JSON.stringify(root.stats)) root.stats = value
+                    if (root.wantedBrightness < 0 && typeof value.brightness === "number") root.brightness = value.brightness
                 } catch(e) { console.warn("Could not read system status:", e) }
             }
         }
     }
+
+    property int brightness: 50
+    property int wantedBrightness: -1
+    function setBrightness(value) {
+        wantedBrightness = Math.max(5, Math.min(100, Math.round(value)))
+        brightness = wantedBrightness
+        if (!brightnessThrottle.running) brightnessThrottle.start()
+    }
+    function stepBrightness(step) { setBrightness(brightness + step); showOsd("brightness") }
+    Timer {
+        id: brightnessThrottle
+        interval: 50
+        onTriggered: {
+            if (brightnessProcess.running) { restart(); return }
+            brightnessProcess.command = ["brightnessctl", "-m", "set", root.wantedBrightness + "%"]
+            brightnessProcess.running = true
+        }
+    }
+    Process {
+        id: brightnessProcess
+        onExited: {
+            if (brightnessThrottle.running) return
+            root.wantedBrightness = -1
+            if (status.running) status.write("{}\n")
+        }
+    }
+
+    property var sink: Pipewire.defaultAudioSink
+    property var source: Pipewire.defaultAudioSource
+    PwObjectTracker { objects: [root.sink, root.source] }
+    readonly property int volume: sink && sink.audio ? Math.round(sink.audio.volume * 100) : 0
+    readonly property bool muted: sink && sink.audio ? sink.audio.muted : true
+    readonly property bool micMuted: source && source.audio ? source.audio.muted : true
+    function changeVolume(step, osd = true) {
+        if (!sink || !sink.audio) return
+        if (step > 0 && sink.audio.muted) sink.audio.muted = false
+        sink.audio.volume = Math.max(0, Math.min(1, Math.round((sink.audio.volume + step) * 100) / 100))
+        if (osd) showOsd("volume")
+    }
+    function toggleMute(osd = true) {
+        if (!sink || !sink.audio) return
+        sink.audio.muted = !sink.audio.muted
+        if (osd) showOsd("volume")
+    }
+    function toggleMic() {
+        if (!source || !source.audio) return
+        source.audio.muted = !source.audio.muted
+        showOsd("mic")
+    }
+
+    readonly property var batteryDevice: UPower.devices.values.find(device => device.isLaptopBattery) || null
+    readonly property bool batteryPresent: Boolean(batteryDevice && batteryDevice.isPresent)
+    readonly property int batteryLevel: batteryDevice ? Math.round(batteryDevice.percentage * 100) : 0
+    readonly property bool batteryPlugged: batteryPresent && !UPower.onBattery
+
+    property string osdKind: ""
+    property string osdText: ""
+    property bool hotkeysPaused: false
+    function showOsdText(kind, text) {
+        if (kind === "hotkeys") hotkeysPaused = text === "paused"
+        osdText = text
+        osdKind = kind
+        osdSerial++
+    }
+    property int osdSerial: 0
+    function showOsd(kind) {
+        if (kind !== "keyboard" && ["control", "audio", "battery"].includes(panel)) return
+        osdKind = kind
+        osdSerial++
+    }
+
+    property bool dnd: false
+    property var seenNotifications: []
+    property var notificationTimes: ({})
+    readonly property var historyNotifications: notificationServer.trackedNotifications.values.filter(n => !n.transient)
+    readonly property int unreadNotifications: historyNotifications.filter(n => !seenNotifications.includes(n.id)).length
+    function findNotification(id) { return notificationServer.trackedNotifications.values.find(n => n.id === id) || null }
+    function notificationTag(n) { return n && n.hints ? (n.hints["x-canonical-private-synchronous"] || n.hints["synchronous"] || "") : "" }
+    function markNotificationsSeen() { seenNotifications = historyNotifications.map(n => n.id) }
+    function popupIndex(id) {
+        for (let i = 0; i < popupModel.count; i++) if (popupModel.get(i).nid === id) return i
+        return -1
+    }
+    function showPopup(n) {
+        if (panel === "notifications" || (dnd && n.urgency !== NotificationUrgency.Critical)) {
+            if (n.transient) n.expire()
+            return
+        }
+        if (popupIndex(n.id) >= 0) { popupRefresh(n.id); return }
+        popupModel.insert(0, {nid: n.id})
+        while (popupModel.count > 4) dropPopup(popupModel.get(popupModel.count - 1).nid)
+    }
+    function dropPopup(id) {
+        const index = popupIndex(id)
+        if (index >= 0) popupModel.remove(index)
+        const n = findNotification(id)
+        if (n && n.transient) n.expire()
+    }
+    function clearNotifications() { historyNotifications.slice().forEach(n => n.dismiss()) }
+    ListModel { id: popupModel }
+    property alias popups: popupModel
+    NotificationServer {
+        id: notificationServer
+        keepOnReload: true
+        persistenceSupported: true
+        bodySupported: true
+        bodyMarkupSupported: true
+        bodyHyperlinksSupported: true
+        actionsSupported: true
+        imageSupported: true
+        onNotification: n => {
+            n.tracked = true
+            root.notificationTimes[n.id] = Date.now()
+            const tag = root.notificationTag(n)
+            if (tag) notificationServer.trackedNotifications.values.filter(other => other !== n && root.notificationTag(other) === tag).forEach(other => {
+                const index = root.popupIndex(other.id)
+                if (index >= 0) popupModel.remove(index)
+                other.expire()
+            })
+            if (!n.transient) root.notificationArrived()
+            root.showPopup(n)
+        }
+    }
+    Instantiator {
+        model: notificationServer.trackedNotifications
+        delegate: Connections {
+            required property var modelData
+            target: modelData
+            function onSummaryChanged() { root.notificationTimes[modelData.id] = Date.now(); root.showPopup(modelData) }
+            function onBodyChanged() { root.notificationTimes[modelData.id] = Date.now(); root.showPopup(modelData) }
+        }
+    }
+
+    onPanelChanged: {
+        if (panel) {
+            closeAnimation.stop()
+            const switching = displayedPanel !== ""
+            card.morph = switching
+            if (!switching) morphArm.restart()
+            if (switching && contentPanel !== panel) { pendingContent = panel; contentSwap.restart() }
+            else if (!switching) { contentSwap.stop(); content.opacity = 1; contentShift.y = 0; contentPanel = panel }
+            displayedPanel = panel
+            openAnimation.restart()
+        } else {
+            openAnimation.stop()
+            closeAnimation.restart()
+        }
+        if (panel !== "wallpapers") galleryWorker.write("[]\n")
+        if (panel !== "bluetooth" && bluetooth.discovering) wifiCommand({action: "bt-scan", enabled: false})
+        if (panel === "launcher") searchApplications("")
+        if (panel === "notifications") markNotificationsSeen()
+        if (panel === "notifications") for (let i = popupModel.count - 1; i >= 0; i--) dropPopup(popupModel.get(i).nid)
+        wifiCommand({action: "panel", visible: panel === "wifi"})
+        if (status.running) status.write(JSON.stringify({detailed: panel === "battery"}) + "\n")
+        if (panel === "wallpapers") refreshWallpapers()
+        if (panel === "wifi" && wifi.powered && !wifi.scanning && !wifi.busy) wifiCommand({action: "scan"})
+        if (panel !== "bluetooth" && bluetoothPrompt.name) wifiCommand({action: "bluetooth-reply", accepted: false})
+        if (panel !== "wifi" && wifiPrompt) wifiCommand({action: "cancel"})
+    }
+    Timer { id: morphArm; interval: 40; onTriggered: if (root.displayedPanel) card.morph = true }
+    Component.onCompleted: refreshWallpapers()
+
     IpcHandler {
         target: "shell"
         function launcher(): void { root.toggle("launcher") }
         function menu(): void { root.toggle("control") }
         function calendar(): void { root.toggle("calendar") }
         function awake(): void { root.keepAwake = !root.keepAwake }
-        function inspect(): string { return JSON.stringify({panel: root.panel, applications: root.applications.length, hidden: root.hiddenApplications, wifi: root.wifi.state, bluetooth: root.bluetooth.powered, wallpapers: root.wallpapers.length, previews: Object.keys(root.previews).length, keepAwake: root.keepAwake, screen: root.panelScreen ? root.panelScreen.name : ""}) }
         function wallpapers(): void { root.toggle("wallpapers") }
         function wifi(): void { root.toggle("wifi") }
         function bluetooth(): void { root.toggle("bluetooth") }
         function audio(): void { root.toggle("audio") }
         function battery(): void { root.toggle("battery") }
+        function notifications(): void { root.toggle("notifications") }
+        function clipboard(): void { root.toggle("clipboard") }
+        function power(): void { root.toggle("power") }
+        function dnd(): void { root.dnd = !root.dnd }
+        function volumeUp(): void { root.changeVolume(0.05) }
+        function volumeDown(): void { root.changeVolume(-0.05) }
+        function volumeMute(): void { root.toggleMute() }
+        function micMute(): void { root.toggleMic() }
+        function osd(kind: string, text: string): void { root.showOsdText(kind, text) }
+        function brightnessUp(): void { root.stepBrightness(5) }
+        function brightnessDown(): void { root.stepBrightness(-5) }
         function tray(itemId: string): void {
             const item = SystemTray.items.values.find(value => value.id === itemId)
             if (!item) return
-            root.trayTarget = item
             root.trayOnlyMenu = item.onlyMenu
             root.trayExpanded = false
-            root.trayX = 0
+            root.trayTarget = item
             root.toggle("tray")
         }
         function close(): void { root.panel = "" }
+        function inspect(): string {
+            return JSON.stringify({panel: root.panel, applications: root.applications.length, hidden: root.hiddenApplications, wifi: root.wifi.state, bluetooth: root.bluetooth.powered, wallpapers: root.wallpapers.length, wallpaper: root.currentWallpaper, previews: Object.keys(root.previews).length, keepAwake: root.keepAwake, screen: root.panelScreen ? root.panelScreen.name : "", battery: {present: root.batteryPresent, raw: root.batteryDevice ? root.batteryDevice.percentage : null, level: root.batteryLevel, plugged: root.batteryPlugged}, brightness: root.brightness, notifications: notificationServer.trackedNotifications.values.map(n => ({id: n.id, app: n.appName, summary: n.summary, transient: n.transient, timeout: n.expireTimeout, urgency: n.urgency})), popups: root.popups.count, dnd: root.dnd})
+        }
+    }
+
+    Variants {
+        model: Quickshell.screens
+        Wallpaper { shell: root }
     }
     Variants {
         model: Quickshell.screens
-        PanelWindow {
-            id: bar
-            IdleInhibitor { window: bar; enabled: root.keepAwake }
-            required property var modelData
-            screen: modelData
-            anchors { top: true; left: true; right: true }
-            margins { top: Math.round(6 * Theme.uiScale); left: Math.round(10 * Theme.uiScale); right: Math.round(10 * Theme.uiScale) }
-            implicitHeight: Math.ceil(28 * Theme.uiScale)
-            exclusiveZone: 42 - Math.round(6 * Theme.uiScale)
-            color: "transparent"
-            WlrLayershell.namespace: "material-bar"
-            Rectangle {
-                width: parent.width / Theme.uiScale
-                height: parent.height / Theme.uiScale
-                scale: Theme.uiScale
-                transformOrigin: Item.TopLeft
-                radius: 9
-                color: Theme.bg
-                border.color: Theme.line
-                RowLayout {
-                    anchors { left: parent.left; leftMargin: 5; verticalCenter: parent.verticalCenter }
-                    spacing: 3
-                    Chip { compact: true; iconSize: 13; label: "󰣇"; shortcut: "Super"; ink: Theme.green; onClicked: root.openAt("launcher", bar) }
-                    Rectangle { width: 1; height: 12; color: Theme.line; Layout.leftMargin: 4; Layout.rightMargin: 6 }
-                    Repeater {
-                        model: [1, 2, 3, 4, 5].concat(Hyprland.workspaces.values.filter(w => w.id > 5).map(w => w.id).sort((a,b) => a-b))
-                        Chip { compact: true; iconSize: 13;
-                            required property int modelData
-                            property int workspaceId: modelData
-                            property bool active: Hyprland.focusedMonitor && Hyprland.focusedMonitor.activeWorkspace && Hyprland.focusedMonitor.activeWorkspace.id === workspaceId
-                            fontSize: active ? 11 : 13
-                            property bool occupied: Hyprland.workspaces.values.some(w => w.id === workspaceId)
-                            shortcut: "Super + " + workspaceId
-                            label: active ? "0" + (workspaceId) : occupied ? "●" : "○"
-                            implicitWidth: active ? 32 : 23
-                            selected: active
-                            ink: active ? Theme.green : occupied ? Theme.text : Theme.muted
-                            Behavior on implicitWidth { SpringAnimation { spring: 5.8; damping: 0.3; mass: 1 } }
-                            Rectangle { anchors { bottom: parent.bottom; horizontalCenter: parent.horizontalCenter } width: parent.active ? 14 / Theme.uiScale : 0; height: 2 / Theme.uiScale; radius: 1; color: Theme.green }
-                            onClicked: Quickshell.execDetached(["hyprctl", "eval", "hl.dispatch(hl.dsp.focus({workspace=" + (workspaceId) + "}))"])
-                        }
-                    }
-                    Text {
-                        text: Hyprland.activeToplevel ? Hyprland.activeToplevel.title : "still / material"
-                        color: Theme.muted
-                        font.family: Theme.font
-                        font.pixelSize: 10
-                        elide: Text.ElideRight
-                        Layout.maximumWidth: Math.max(70, bar.width / Theme.uiScale * 0.16)
-                        Layout.leftMargin: 12
-                    }
-                }
-                Chip { compact: true; iconSize: 13;
-                    anchors.centerIn: parent
-                    label: clock.date.toLocaleString(Qt.locale("en_US"), "ddd, d MMM  ·  HH:mm")
-                    ink: Theme.text
-                    onClicked: root.openAt("calendar", bar)
-                }
-                RowLayout {
-                    anchors { right: parent.right; rightMargin: 5; verticalCenter: parent.verticalCenter }
-                    spacing: 2
-                    Repeater {
-                        model: SystemTray.items
-                        Item {
-                            required property var modelData
-                            implicitWidth: 23; implicitHeight: 22
-                            Image {
-                                id: trayIcon
-                                anchors.centerIn: parent
-                                width: 17; height: 17
-                                source: modelData.icon
-                                visible: source.toString() !== "" && status !== Image.Error
-                            }
-                            Text {
-                                anchors.centerIn: parent
-                                visible: !trayIcon.visible
-                                text: "󰀻"
-                                color: Theme.muted
-                                font.family: Theme.icons
-                                font.pixelSize: 16
-                            }
-                            MouseArea {
-                                anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
-                                onClicked: event => {
-                                    if (event.button === Qt.RightButton) {
-                                        root.panelScreen = bar.screen
-                                        root.trayOnlyMenu = false
-                                        root.trayExpanded = false
-                                        root.trayTarget = modelData
-                                        root.trayBar = bar
-                                        root.trayX = mapToItem(null, 0, 0).x
-                                        root.panel = "tray"
-                                    } else if (modelData.onlyMenu) { root.panelScreen = bar.screen; root.trayOnlyMenu = true; root.trayTarget = modelData; root.trayX = mapToItem(null, 0, 0).x; root.panel = "tray" }
-                                    else modelData.activate()
-                                }
-                                onWheel: event => modelData.scroll(event.angleDelta.y, false)
-                            }
-                        }
-                    }
-                    Text {
-                        textFormat: Text.RichText
-                        text: '<span style="font-size: 12px">󰻠</span> ' + (root.resources.cpu === null ? "…" : root.resources.cpu + "%")
-                        color: Theme.text
-                        font.family: Theme.icons
-                        font.pixelSize: 10
-                        Layout.preferredWidth: 53
-                        Layout.leftMargin: 6
-                    }
-                    Text {
-                        textFormat: Text.RichText
-                        text: '<span style="font-size: 12px">󰍛</span> ' + (root.resources.ramTotal > 0 ? root.resources.ramUsed.toFixed(1) + " GiB" : "…")
-                        color: Theme.text
-                        font.family: Theme.icons
-                        font.pixelSize: 10
-                        Layout.preferredWidth: 78
-                    }
-                    Rectangle {
-                        implicitWidth: 49
-                        implicitHeight: 22
-                        radius: 6
-                        color: keyboardHover.containsMouse ? Theme.elevated : "transparent"
-                        Behavior on color { ColorAnimation { duration: 140 } }
-                        Row {
-                            anchors.centerIn: parent
-                            spacing: 5
-                            Image {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 16
-                                height: 12
-                                source: "file:///home/chuh/.config/rice/icons/keyboard-bar.svg"
-                            }
-                            Text {
-                                text: root.keyboardLayout.label
-                                color: Theme.text
-                                font.family: Theme.icons
-                                font.pixelSize: 10
-                            }
-                        }
-                        MouseArea {
-                            id: keyboardHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: Quickshell.execDetached(["python", "/home/chuh/.config/rice/keyboard.py", "next"])
-                        }
-                    }
-                    Chip { id: networkChip; compact: true; iconSize: 13; label: root.networkConnected ? "󰤨" : "󰤭"; ink: root.networkConnected ? Theme.green : Theme.muted; onClicked: root.openModule("wifi", networkChip, bar) }
-                    Chip { id: bluetoothChip; compact: true; iconSize: 13; label: "󰂯"; ink: root.adapter && root.adapter.enabled ? Theme.green : Theme.muted; onClicked: root.openModule("bluetooth", bluetoothChip, bar) }
-                    Chip { id: audioChip; compact: true; iconSize: 13; label: root.muted ? "󰖁" : "󰕾"; shortcut: "XF86AudioRaiseVolume / XF86AudioLowerVolume / XF86AudioMute"; onClicked: root.openModule("audio", audioChip, bar); onRightClicked: root.run("volume-mute"); onScrolled: delta => root.run(delta > 0 ? "volume-up" : "volume-down") }
-                    Chip { id: batteryChip; compact: true; iconSize: 13; visible: root.stats.present; label: (root.stats.charging ? "󰂄 " : "󰁹 ") + root.stats.battery + "%"; ink: root.stats.battery < 20 ? Theme.red : Theme.text; onClicked: root.openModule("battery", batteryChip, bar) }
-                    Rectangle { width: 1; height: 12; color: Theme.line; Layout.leftMargin: 5; Layout.rightMargin: 5 }
-                    Chip { compact: true; iconSize: 13; label: "󰂚"; shortcut: "Super + N"; ink: Theme.yellow; onClicked: root.run("notifications") }
-                    Chip { compact: true; iconSize: 13; label: "󰒓"; shortcut: "Super + Space"; ink: Theme.green; onClicked: root.openAt("control", bar) }
-                }
-            }
+        Bar { shell: root }
+    }
+    NotificationPopups { shell: root }
+    Osd { shell: root }
+
+    function panelWidth(p, available) {
+        return p === "tray" ? 293 : p === "wallpapers" ? Math.min(1000, available - 40) : p === "launcher" || p === "clipboard" ? 720 : p === "control" ? 520 : p === "power" ? 640 : 468
+    }
+    function panelHeight(p, available) {
+        const value = p === "battery" ? 460 : p === "audio" ? 492 : p === "wifi" ? (wifiPrompt ? 653 : 512) : p === "bluetooth" ? 512 : p === "tray" ? (trayOnlyMenu || trayExpanded ? 460 : 220) : p === "wallpapers" ? 700 : p === "launcher" || p === "clipboard" ? 650 : p === "calendar" ? 500 : p === "notifications" ? 640 : p === "power" ? 290 : 704
+        return Math.min(available - 70, value)
+    }
+    function panelX(p, w, available) {
+        if (centeredPanels.includes(p)) return (available - w) / 2
+        if (anchoredPanels.includes(p) && panelAnchor) return Math.min(Math.max(14, panelAnchor - w / 2), available - w - 14)
+        return available - w - 14
+    }
+    function panelY(p, h, available) {
+        if (p === "power") return (available - h) / 2 - 20
+        if (centeredPanels.includes(p)) return Math.min(130, (available - h) / 2)
+        return 58
+    }
+    function componentFor(p) {
+        switch (p) {
+        case "wifi": return wifiView
+        case "bluetooth": return bluetoothView
+        case "audio": return audioView
+        case "battery": return batteryView
+        case "tray": return trayView
+        case "wallpapers": return wallpaperView
+        case "launcher": return launcherView
+        case "calendar": return calendarView
+        case "notifications": return notificationsView
+        case "clipboard": return clipboardView
+        case "power": return powerView
+        default: return controlView
         }
     }
+
     PanelWindow {
         id: popup
         visible: root.displayedPanel !== ""
@@ -412,217 +493,96 @@ ShellRoot {
             Keys.onEscapePressed: event => { root.panel = ""; event.accepted = true }
             Connections {
                 target: root
-                function onPanelChanged() {
-                    if (root.panel && root.panel !== "launcher" && root.panel !== "wallpapers" && root.panel !== "tray" && !root.wifiPrompt && !root.bluetoothPrompt.name)
+                function onContentPanelChanged() {
+                    if (root.contentPanel && !["launcher", "wallpapers", "tray", "clipboard", "power", "calendar"].includes(root.contentPanel) && !root.wifiPrompt && !root.bluetoothPrompt.name)
                         Qt.callLater(() => popupKeys.forceActiveFocus())
                 }
             }
-        Rectangle { anchors.fill: parent; opacity: root.panel ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 200 } } color: root.modulePanel ? "#181d2021" : "#601d2021"; MouseArea { anchors.fill: parent; onClicked: root.panel = "" } }
-        Rectangle {
-            id: card
-            property real reveal: root.panel ? 1 : 0
-            Behavior on reveal { SpringAnimation { spring: 4.2; damping: 0.27; mass: 1; epsilon: 0.002 } }
-            scale: Theme.uiScale
-            transformOrigin: Item.TopLeft
-            width: (root.modulePanel ? 468 : root.displayedPanel === "tray" ? 293 : root.displayedPanel === "wallpapers" ? Math.min(1000, parent.width - 40) : root.displayedPanel === "launcher" ? 720 : root.displayedPanel === "control" ? 520 : 468) / Theme.uiScale
-            height: Math.min(parent.height - 70, root.modulePanel ? (root.displayedPanel === "battery" ? 460 : root.displayedPanel === "audio" ? 492 : root.displayedPanel === "wifi" && root.wifiPrompt ? 653 : 512) : root.displayedPanel === "tray" ? (root.trayOnlyMenu || root.trayExpanded ? 460 : 220) : root.displayedPanel === "wallpapers" ? 700 : root.displayedPanel === "launcher" ? 650 : root.displayedPanel === "calendar" ? 512 : 704) / Theme.uiScale
-            x: root.modulePanel || root.displayedPanel === "tray" ? Math.min(Math.max(14, (root.displayedPanel === "tray" ? root.trayX : root.moduleX) ? (root.displayedPanel === "tray" ? root.trayX : root.moduleX) - width * scale / 2 : parent.width - width * scale - 14), parent.width - width * scale - 14) : root.displayedPanel === "launcher" || root.displayedPanel === "wallpapers" ? (parent.width - width * scale) / 2 : parent.width - width * scale - 14
-            y: (root.displayedPanel === "launcher" || root.displayedPanel === "wallpapers" ? Math.min(130, (parent.height - height * scale) / 2) : 58) + (root.modulePanel ? -14 : 24) * (1 - reveal)
-            opacity: Math.max(0, Math.min(1, reveal * 2))
-            transform: [Scale { origin.x: card.width / 2; xScale: 0.985 + 0.015 * card.reveal; yScale: 0.90 + 0.10 * card.reveal }, Rotation { origin.x: card.width - 30; angle: (root.modulePanel ? 2 : -2.6) * (1 - card.reveal) }]
-            color: Theme.bg; radius: root.modulePanel ? 14 : 22; border.color: Theme.line
-            MouseArea { anchors.fill: parent }
-            Loader { active: root.displayedPanel !== ""; anchors.fill: parent; anchors.margins: root.modulePanel ? 24 / Theme.uiScale : root.displayedPanel === "launcher" ? 32 / Theme.uiScale : 28 / Theme.uiScale; opacity: root.panel ? 1 : 0; Behavior on opacity { NumberAnimation { duration: 170 } } sourceComponent: root.displayedPanel === "wifi" ? wifiView : root.displayedPanel === "bluetooth" ? bluetoothView : root.displayedPanel === "audio" ? audioView : root.displayedPanel === "battery" ? batteryView : root.displayedPanel === "tray" ? trayMenu : root.displayedPanel === "wallpapers" ? wallpaperPicker : root.displayedPanel === "launcher" ? launcher : root.displayedPanel === "calendar" ? calendar : control }
+            Rectangle {
+                anchors.fill: parent
+                opacity: Math.max(0, Math.min(1, card.reveal))
+                color: root.anchoredPanels.includes(root.displayedPanel) ? "#181d2021" : "#601d2021"
+                Behavior on color { ColorAnimation { duration: Theme.normal } }
+                MouseArea { anchors.fill: parent; onClicked: root.panel = "" }
+            }
+            Rectangle {
+                id: card
+                property real reveal: 0
+                property bool morph: false
+                readonly property string kind: root.displayedPanel
+                readonly property bool anchored: root.anchoredPanels.includes(kind) && root.panelAnchor > 0
+                readonly property bool centered: root.centeredPanels.includes(kind)
+                readonly property real visualWidth: root.panelWidth(kind, popup.width)
+                readonly property real visualHeight: root.panelHeight(kind, popup.height)
+                scale: Theme.uiScale
+                transformOrigin: Item.TopLeft
+                width: visualWidth / Theme.uiScale
+                height: visualHeight / Theme.uiScale
+                x: root.panelX(kind, visualWidth, popup.width)
+                y: root.panelY(kind, visualHeight, popup.height)
+                radius: root.anchoredPanels.includes(kind) ? 14 : 22
+                color: Theme.bg
+                border.color: Theme.line
+                opacity: Math.max(0, Math.min(1, reveal * 2))
+                Behavior on x { enabled: card.morph; NumberAnimation { duration: Theme.slow; easing.type: Easing.OutQuint } }
+                Behavior on y { enabled: card.morph; NumberAnimation { duration: Theme.slow; easing.type: Easing.OutQuint } }
+                Behavior on width { enabled: card.morph; NumberAnimation { duration: Theme.slow; easing.type: Easing.OutQuint } }
+                Behavior on height { enabled: card.morph; NumberAnimation { duration: Theme.slow; easing.type: Easing.OutQuint } }
+                Behavior on radius { enabled: card.morph; NumberAnimation { duration: Theme.slow } }
+                transform: [
+                    Translate { y: (card.anchored ? -10 : 24) * (1 - card.reveal) },
+                    Scale {
+                        origin.x: card.anchored ? Math.max(0, Math.min(card.width, (root.panelAnchor - card.x) / Theme.uiScale)) : card.centered ? card.width / 2 : card.width
+                        origin.y: card.kind === "power" ? card.height / 2 : 0
+                        xScale: card.anchored ? 0.86 + 0.14 * card.reveal : card.centered ? 0.95 + 0.05 * card.reveal : 0.985 + 0.015 * card.reveal
+                        yScale: card.anchored ? 0.8 + 0.2 * card.reveal : card.centered ? 0.95 + 0.05 * card.reveal : 0.9 + 0.1 * card.reveal
+                    },
+                    Rotation { origin.x: card.width - 30; angle: card.anchored ? 0 : -1.6 * (1 - card.reveal) }
+                ]
+                SpringAnimation { id: openAnimation; target: card; property: "reveal"; to: 1; spring: 4.2; damping: 0.3; epsilon: 0.002 }
+                NumberAnimation {
+                    id: closeAnimation
+                    target: card
+                    property: "reveal"
+                    to: 0
+                    duration: 170
+                    easing.type: Easing.InCubic
+                    onFinished: { card.morph = false; root.displayedPanel = ""; root.contentPanel = "" }
+                }
+                MouseArea { anchors.fill: parent }
+                Item {
+                    id: content
+                    anchors.fill: parent
+                    anchors.margins: (root.modulePanel ? 24 : root.contentPanel === "launcher" || root.contentPanel === "clipboard" ? 32 : 28) / Theme.uiScale
+                    transform: Translate { id: contentShift }
+                    Loader {
+                        anchors.fill: parent
+                        active: root.contentPanel !== ""
+                        sourceComponent: root.componentFor(root.contentPanel)
+                    }
+                }
+                SequentialAnimation {
+                    id: contentSwap
+                    NumberAnimation { target: content; property: "opacity"; to: 0; duration: 90; easing.type: Easing.InQuad }
+                    ScriptAction { script: root.contentPanel = root.pendingContent }
+                    ParallelAnimation {
+                        NumberAnimation { target: content; property: "opacity"; to: 1; duration: Theme.normal; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: contentShift; property: "y"; from: 8; to: 0; duration: Theme.slow; easing.type: Easing.OutCubic }
+                    }
+                }
+            }
         }
-        
-        }
-
     }
     Component { id: wifiView; WifiPanel { shell: root } }
     Component { id: bluetoothView; BluetoothPanel { shell: root } }
     Component { id: audioView; AudioPanel { shell: root } }
     Component { id: batteryView; BatteryPanel { shell: root } }
-    Component { id: trayMenu; TrayPanel { shell: root } }
-    Component {
-        id: launcher
-        ColumnLayout {
-            id: launcherView
-            property bool showHidden: false
-            function restoreSelection(id, index) {
-                Qt.callLater(() => {
-                    const found = apps.model.findIndex(app => app.id === id)
-                    apps.currentIndex = found >= 0 ? found : Math.min(index, apps.count - 1)
-                })
-            }
-            function toggleHidden() {
-                if (!apps.currentItem) return
-                const id = apps.currentItem.modelData.id
-                const index = apps.currentIndex
-                root.toggleApplicationHidden(id)
-                restoreSelection(id, index)
-            }
-            function toggleShowHidden() {
-                const id = apps.currentItem ? apps.currentItem.modelData.id : ""
-                const index = Math.max(0, apps.currentIndex)
-                showHidden = !showHidden
-                restoreSelection(id, index)
-            }
-            spacing: 14
-            Text { text: "workspace / launch"; color: Theme.green; font.family: Theme.font; font.pixelSize: 9; font.letterSpacing: 1 }
-            RowLayout {
-                Layout.fillWidth: true
-                Text { text: "applications"; color: Theme.text; font.family: Theme.font; font.pixelSize: 26; Layout.fillWidth: true }
-                Chip { label: "×"; onClicked: root.panel = "" }
-            }
-            Rectangle {
-                Layout.fillWidth: true; height: 52; radius: 12; color: Theme.surface; border.color: search.activeFocus ? Theme.green : Theme.line
-                TextInput {
-                    id: search
-                    anchors.fill: parent; anchors.margins: 16
-                    color: Theme.text; font.family: Theme.font; font.pixelSize: 16
-                    focus: true; clip: true; selectByMouse: true
-                    Component.onCompleted: forceActiveFocus()
-                    Text { visible: !search.text; text: "find an application…"; color: Theme.muted; font: search.font }
-                    Keys.onPressed: event => {
-                        if (event.key === Qt.Key_H && (event.modifiers === Qt.ControlModifier || event.modifiers === (Qt.ControlModifier | Qt.ShiftModifier))) {
-                            if (!event.isAutoRepeat) {
-                                if (event.modifiers & Qt.ShiftModifier) launcherView.toggleShowHidden()
-                                else launcherView.toggleHidden()
-                            }
-                            event.accepted = true
-                        }
-                    }
-                    Keys.onEscapePressed: root.panel = ""
-                    Keys.onDownPressed: apps.currentIndex = Math.min(apps.count - 1, apps.currentIndex + 1)
-                    Keys.onUpPressed: apps.currentIndex = Math.max(0, apps.currentIndex - 1)
-                    Keys.onReturnPressed: if (apps.currentItem) { apps.currentItem.launch(); root.panel = "" }
-                    onTextChanged: { apps.currentIndex = 0; root.searchApplications(text) }
-                }
-            }
-            ListView {
-                id: apps
-                Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 5
-                model: root.applications.filter(a => launcherView.showHidden || !root.hiddenApplications.includes(a.id))
-                currentIndex: 0
-                onModelChanged: Qt.callLater(() => { if (count > 0 && currentIndex < 0) currentIndex = 0 })
-                delegate: Rectangle {
-                    id: entry
-                    required property var modelData
-                    required property int index
-                    readonly property bool hidden: root.hiddenApplications.includes(modelData.id)
-                    function launch() { Quickshell.execDetached(["python", "/home/chuh/.config/quickshell/material/helpers/desktop.py", "launch", modelData.id]) }
-                    width: apps.width; height: 56;
-                    opacity: 0
-                    x: 12
-                    ParallelAnimation { running: true; NumberAnimation { target: entry; property: "opacity"; to: 1; duration: 220 } NumberAnimation { target: entry; property: "x"; to: 0; duration: 280; easing.type: Easing.OutCubic } } radius: 11
-                    color: ListView.isCurrentItem ? Theme.elevated : hover.containsMouse ? Theme.surface : "transparent"
-                    RowLayout {
-                        anchors.fill: parent; anchors.margins: 10; spacing: 13
-                        opacity: entry.hidden ? 0.55 : 1
-                        Rectangle {
-                            Layout.preferredWidth: 28; Layout.preferredHeight: 28; radius: 7; color: Theme.elevated
-                            property bool hasIcon: modelData.icon.startsWith("/") || Quickshell.hasThemeIcon(modelData.icon)
-                            Image { anchors.fill: parent; source: parent.hasIcon ? modelData.icon.startsWith("/") ? "file://" + modelData.icon : Quickshell.iconPath(modelData.icon) : "" }
-                            Text { anchors.centerIn: parent; visible: !parent.hasIcon; text: modelData.name.charAt(0); color: Theme.green; font.family: Theme.font; font.pixelSize: 16 }
-                        }
-                        ColumnLayout {
-                            spacing: 2
-                            Text { text: modelData.name; color: Theme.text; font.family: Theme.font; font.pixelSize: 14 }
-                            Text { text: modelData.generic || modelData.comment || "Application"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 10; elide: Text.ElideRight; Layout.maximumWidth: 390 }
-                        }
-                        Item { Layout.fillWidth: true }
-                        Text { visible: entry.hidden; text: "󰈈"; color: Theme.muted; font.family: Theme.icons; font.pixelSize: 18 }
-                        Text { visible: entry.ListView.isCurrentItem; text: "↵"; color: Theme.green }
-                    }
-                    MouseArea { id: hover; anchors.fill: parent; hoverEnabled: true; onClicked: { entry.launch(); root.panel = "" } }
-                }
-                Text { anchors.centerIn: parent; visible: apps.count === 0; text: "No results found"; color: Theme.muted; font.family: Theme.font }
-            }
-            Text {
-                text: "↑ ↓  select       ↵  launch       󰈉  ctrl+h  " + (apps.currentItem && apps.currentItem.hidden ? "unhide" : "hide") + "       󰈈  ctrl+shift+h  " + (launcherView.showHidden ? "hide hidden" : "show hidden") + "       esc  close"
-                color: Theme.muted
-                font.family: Theme.font
-                font.pixelSize: 10
-            }
-        }
-    }
-    Component { id: control; ControlPanel { shell: root; date: clock.date } }
-    Component {
-        id: wallpaperPicker
-        ColumnLayout {
-            spacing: 14
-            RowLayout {
-                Layout.fillWidth: true
-                ColumnLayout {
-                    spacing: 6
-                    Text { text: "wallpapers"; font.family: Theme.font; font.pixelSize: 26; color: Theme.text }
-                    Text { text: root.wallpapers.length + " images · Pictures/Wallpapers"; font.family: Theme.font; font.pixelSize: 11; color: Theme.muted }
-                }
-                Item { Layout.fillWidth: true }
-                Chip { label: "refresh"; onClicked: if (!wallpaperScan.running) wallpaperScan.running = true }
-                Chip { label: "×"; onClicked: root.panel = "" }
-            }
-            GridView {
-                id: gallery
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                cellWidth: width / 2
-                cellHeight: cellWidth * 9 / 16 + 54
-                model: root.wallpapers
-                focus: true
-                Component.onCompleted: { forceActiveFocus(); requestPreviews() }
-                function requestPreviews() {
-                    if (root.panel !== "wallpapers") return
-                    const first = Math.max(0, Math.floor(contentY / cellHeight) * 2)
-                    galleryWorker.write(JSON.stringify(root.wallpapers.slice(first, first + 8)) + "\n")
-                }
-                onContentYChanged: requestPreviews()
-                onModelChanged: Qt.callLater(requestPreviews)
-                Keys.onEscapePressed: root.panel = ""
-                Keys.onReturnPressed: if (currentItem) root.applyWallpaper(currentItem.modelData.path)
-                ScrollBar.vertical: ScrollBar { }
-                delegate: Rectangle {
-                    id: tile
-                    required property var modelData
-                    required property int index
-                    property bool selected: root.currentWallpaper === modelData.path
-                    width: gallery.cellWidth - 10
-                    height: gallery.cellHeight - 10
-                    radius: 14
-                    color: hover.containsMouse ? Theme.elevated : Theme.surface
-                    border.width: 1
-                    border.color: selected || tile.GridView.isCurrentItem ? Theme.green : Theme.line
-                    Image {
-                        id: preview
-                        anchors { top: parent.top; left: parent.left; right: parent.right; margins: 7 }
-                        height: width * 9 / 16
-                        source: root.previews[modelData.path + "\n" + modelData.revision] ? "file://" + root.previews[modelData.path + "\n" + modelData.revision] : ""
-                        sourceSize.width: 640
-                        sourceSize.height: 360
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        clip: true
-                    }
-                    RowLayout {
-                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; leftMargin: 13; rightMargin: 13; bottomMargin: 12 }
-                        spacing: 8
-                        Text { text: modelData.name; Layout.fillWidth: true; elide: Text.ElideRight; font.family: Theme.font; font.pixelSize: 12; color: Theme.text }
-                        Text { visible: tile.selected; text: "✓ applied"; font.family: Theme.font; font.pixelSize: 10; color: Theme.green }
-                    }
-                    MouseArea {
-                        id: hover
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: { gallery.currentIndex = index; root.applyWallpaper(modelData.path) }
-                    }
-                }
-                Text { anchors.centerIn: parent; visible: gallery.count === 0 && !wallpaperScan.running; text: "Add images to Pictures/Wallpapers"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 12 }
-            }
-            Text { visible: root.wallpaperError !== ""; text: root.wallpaperError; Layout.fillWidth: true; wrapMode: Text.WordWrap; color: Theme.red; font.family: Theme.font; font.pixelSize: 11 }
-            Text { text: wallpaperApply.running ? "Applying…" : "Click a preview to apply  ·  ↑ ↓ ← → navigate  ·  Esc close"; color: Theme.muted; font.family: Theme.font; font.pixelSize: 11 }
-        }
-    }
-    Component { id: calendar; CalendarPanel { date: clock.date } }
+    Component { id: trayView; TrayPanel { shell: root } }
+    Component { id: launcherView; Launcher { shell: root } }
+    Component { id: wallpaperView; WallpaperPicker { shell: root } }
+    Component { id: controlView; ControlPanel { shell: root; date: root.clock.date } }
+    Component { id: calendarView; CalendarPanel { date: root.clock.date } }
+    Component { id: notificationsView; NotificationsPanel { shell: root } }
+    Component { id: clipboardView; ClipboardPanel { shell: root } }
+    Component { id: powerView; PowerPanel { shell: root } }
 }

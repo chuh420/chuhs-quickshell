@@ -1,6 +1,7 @@
 [Unit]
 Description=Pleamar material desktop shell
 Conflicts=rice-quickshell.service
+Wants=swaync.service rice-osd.service
 StartLimitIntervalSec=30
 StartLimitBurst=3
 

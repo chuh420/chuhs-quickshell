@@ -4,3 +4,4 @@ Description=Refresh desktop shell after application and icon changes
 [Service]
 Type=oneshot
 ExecStart=/home/chuh/.local/bin/rice-refresh-shell
+TimeoutStartSec=infinity

@@ -25,16 +25,27 @@ Slider {
         height: 6
         radius: 3
         color: Theme.elevated
-        Rectangle { width: parent.width * control.visualPosition; height: 6; radius: 3; color: control.accent }
+        Rectangle {
+            width: parent.width * control.visualPosition
+            height: 6
+            radius: 3
+            color: control.accent
+            Behavior on width { enabled: !control.pressed; NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
+            Behavior on color { ColorAnimation { duration: Theme.normal } }
+        }
     }
     handle: Rectangle {
-        x: control.leftPadding + control.visualPosition * (control.availableWidth - width)
+        property real size: control.pressed ? 18 : sliderHover.hovered ? 16 : 14
+        x: control.leftPadding + control.visualPosition * (control.availableWidth - 14) - (size - 14) / 2
         y: (control.height - height) / 2
-        implicitWidth: 14
-        implicitHeight: 14
+        implicitWidth: size
+        implicitHeight: size
         width: implicitWidth
         height: implicitHeight
-        radius: 6
-        color: Theme.text
+        radius: size / 2.3
+        color: control.pressed ? control.accent : Theme.text
+        Behavior on x { enabled: !control.pressed; NumberAnimation { duration: Theme.normal; easing.type: Easing.OutCubic } }
+        Behavior on size { NumberAnimation { duration: Theme.fast; easing.type: Easing.OutCubic } }
+        Behavior on color { ColorAnimation { duration: Theme.fast } }
     }
 }

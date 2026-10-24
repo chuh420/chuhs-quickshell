@@ -1,6 +1,7 @@
 [Unit]
 Description=Rice osd helper
 PartOf=rice-session.target
+Conflicts=rice-quickshell.service
 After=graphical-session-pre.target
 ConditionEnvironment=WAYLAND_DISPLAY
 

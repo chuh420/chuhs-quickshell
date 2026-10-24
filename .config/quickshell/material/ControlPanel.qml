@@ -28,6 +28,10 @@ ColumnLayout {
                 Layout.preferredHeight: 95
                 radius: 16
                 color: tileMouse.containsMouse ? Theme.elevated : Theme.surface
+                scale: tileMouse.pressed ? 0.97 : 1
+                Behavior on color { ColorAnimation { duration: Theme.fast } }
+                Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
+                Behavior on border.color { ColorAnimation { duration: Theme.normal } }
                 border.color: active ? (wifi ? Theme.green : Theme.yellow) : Theme.line
                 border.width: 0.7
                 ColumnLayout {
@@ -70,7 +74,7 @@ ColumnLayout {
                 Layout.fillWidth: true
                 PanelLabel { text: "󰕾"; font.family: Theme.icons; font.pixelSize: 18; color: Theme.green }
                 PanelLabel { text: "volume"; Layout.fillWidth: true }
-                Chip { label: shell.muted ? "mute" : shell.volume + "%"; ink: Theme.green; shortcut: "XF86AudioMute"; onClicked: shell.run("volume-mute"); onRightClicked: shell.toggle("audio") }
+                Chip { label: shell.muted ? "mute" : shell.volume + "%"; ink: Theme.green; shortcut: "XF86AudioMute"; onClicked: shell.toggleMute(false); onRightClicked: shell.toggle("audio") }
             }
             MaterialSlider { Layout.fillWidth: true; value: shell.volume; shortcut: "XF86AudioRaiseVolume / XF86AudioLowerVolume"; onMoved: if (shell.sink && shell.sink.audio) shell.sink.audio.volume = value / 100 }
         }
@@ -88,9 +92,9 @@ ColumnLayout {
                 Layout.fillWidth: true
                 PanelLabel { text: "󰃟"; font.family: Theme.icons; font.pixelSize: 18; color: Theme.yellow }
                 PanelLabel { text: "brightness"; Layout.fillWidth: true }
-                PanelLabel { text: shell.stats.brightness + "%"; color: Theme.yellow; font.family: Theme.icons }
+                PanelLabel { text: shell.brightness + "%"; color: Theme.yellow; font.family: Theme.icons }
             }
-            MaterialSlider { Layout.fillWidth: true; from: 5; value: shell.stats.brightness; accent: Theme.yellow; shortcut: "XF86MonBrightnessUp / XF86MonBrightnessDown"; onMoved: shell.setBrightness(value) }
+            MaterialSlider { Layout.fillWidth: true; from: 5; value: shell.brightness; accent: Theme.yellow; shortcut: "XF86MonBrightnessUp / XF86MonBrightnessDown"; onMoved: shell.setBrightness(value) }
         }
     }
     Rectangle {
@@ -99,6 +103,7 @@ ColumnLayout {
         Layout.topMargin: 15
         radius: 13
         color: shell.keepAwake ? Theme.elevated : Theme.surface
+        Behavior on color { ColorAnimation { duration: Theme.normal } }
         RowLayout {
             anchors.fill: parent
             anchors.margins: 8
@@ -113,12 +118,12 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         spacing: 7
-        Chip { label: "󰂚"; fontSize: 18; shortcut: "Super + N"; onClicked: shell.run("notifications") }
-        Chip { label: "󰅍"; fontSize: 18; shortcut: "Super + C"; onClicked: shell.run("clipboard") }
+        Chip { label: "󰂚"; fontSize: 18; shortcut: "Super + N"; onClicked: shell.toggle("notifications") }
+        Chip { label: "󰅍"; fontSize: 18; shortcut: "Super + C"; onClicked: shell.toggle("clipboard") }
         Chip { label: "󰄀"; fontSize: 18; shortcut: "Print"; onClicked: shell.run("screenshot") }
         Chip { label: "󰸉"; fontSize: 18; shortcut: "Super + B"; ink: Theme.green; onClicked: shell.toggle("wallpapers") }
         Item { Layout.fillWidth: true }
         Chip { label: "󰒲"; fontSize: 18; onClicked: { shell.panel = ""; shell.run("suspend") } }
-        Chip { label: "󰐥"; fontSize: 18; ink: Theme.red; onClicked: shell.run("power") }
+        Chip { label: "󰐥"; fontSize: 18; ink: Theme.red; onClicked: shell.toggle("power") }
     }
 }

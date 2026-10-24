@@ -1,5 +1,9 @@
 singleton Theme 1.0 Theme.qml
+singleton Paths 1.0 Paths.qml
 Chip 1.0 Chip.qml
+SwapText 1.0 SwapText.qml
+Bar 1.0 Bar.qml
+Workspaces 1.0 Workspaces.qml
 WifiPanel 1.0 WifiPanel.qml
 BluetoothPanel 1.0 BluetoothPanel.qml
 AudioPanel 1.0 AudioPanel.qml
@@ -10,3 +14,12 @@ BindToolTip 1.0 BindToolTip.qml
 ControlPanel 1.0 ControlPanel.qml
 TrayPanel 1.0 TrayPanel.qml
 CalendarPanel 1.0 CalendarPanel.qml
+Launcher 1.0 Launcher.qml
+WallpaperPicker 1.0 WallpaperPicker.qml
+Wallpaper 1.0 Wallpaper.qml
+NotificationCard 1.0 NotificationCard.qml
+NotificationPopups 1.0 NotificationPopups.qml
+NotificationsPanel 1.0 NotificationsPanel.qml
+Osd 1.0 Osd.qml
+PowerPanel 1.0 PowerPanel.qml
+ClipboardPanel 1.0 ClipboardPanel.qml

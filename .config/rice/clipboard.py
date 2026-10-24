@@ -20,6 +20,16 @@ if clipboard_state in ("nil", "clear", "sensitive") or not data:
 subprocess.run(["cliphist", "store"], input=data, stdout=subprocess.DEVNULL, timeout=10)
 if initial:
     sys.exit(0)
+if data[:8] == b"\x89PNG\r\n\x1a\n" or data[:3] == b"\xff\xd8\xff":
+    preview = "image copied"
+else:
+    preview = " ".join(data[:400].decode("utf-8", "replace").split())
+    preview = "copied · " + (preview[:36] + "…" if len(preview) > 37 else preview) if preview else "copied"
+try:
+    if subprocess.run(["/home/chuh/.local/bin/chuhshell", "osd", "clipboard", preview], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3).returncode == 0:
+        sys.exit(0)
+except (OSError, subprocess.SubprocessError):
+    pass
 try:
     result = subprocess.check_output([
         "gdbus", "call", "--session", "--dest", "org.freedesktop.Notifications",
