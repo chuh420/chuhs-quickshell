@@ -47,7 +47,7 @@ PanelWindow {
         RowLayout {
             anchors { left: parent.left; leftMargin: 5; verticalCenter: parent.verticalCenter }
             spacing: 3
-            Chip { id: launcherChip; compact: true; iconSize: 13; label: "󰣇"; shortcut: "Super"; ink: Theme.green; selected: bar.shell.panel === "launcher"; onClicked: bar.shell.openAt("launcher", bar) }
+            Chip { id: launcherChip; compact: true; iconSize: 13; label: "󰣇"; shortcut: "Super + D"; ink: Theme.green; selected: bar.shell.panel === "launcher"; onClicked: bar.shell.openAt("launcher", bar) }
             Rectangle { width: 1; height: 12; color: Theme.line; Layout.leftMargin: 4; Layout.rightMargin: 6 }
             Workspaces {}
             SwapText {

@@ -1,5 +1,5 @@
 [Unit]
-Description=Refresh desktop shell after application and icon changes
+Description=Refresh desktop shell after icon changes
 
 [Service]
 Type=oneshot

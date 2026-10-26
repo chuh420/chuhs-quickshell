@@ -20,6 +20,15 @@ def preview_paths(item):
     return source, cache / (key + '.png')
 
 
+video_extensions = {'.mp4', '.webm', '.mkv', '.mov'}
+
+
+def command(source, temporary):
+    if source.suffix.lower() in video_extensions:
+        return ['ffmpeg', '-nostdin', '-loglevel', 'error', '-y', '-threads', '1', '-i', str(source), '-frames:v', '1', '-vf', 'scale=640:360:force_original_aspect_ratio=increase,crop=640:360', str(temporary)]
+    return ['magick', '-limit', 'thread', '1', '-limit', 'memory', '256MiB', str(source) + '[0]', '-auto-orient', '-thumbnail', '640x360^', '-gravity', 'center', '-extent', '640x360', str(temporary)]
+
+
 def conversion(source, temporary):
     parent = os.getpid()
     def follow_parent():
@@ -28,7 +37,7 @@ def conversion(source, temporary):
             raise OSError('Cannot bind preview converter to its worker')
         if os.getppid() != parent:
             os.kill(os.getpid(), signal.SIGTERM)
-    return subprocess.Popen(['magick', '-limit', 'thread', '1', '-limit', 'memory', '256MiB', str(source) + '[0]', '-auto-orient', '-thumbnail', '640x360^', '-gravity', 'center', '-extent', '640x360', str(temporary)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=follow_parent)
+    return subprocess.Popen(command(source, temporary), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=follow_parent)
 
 
 def stop(process):

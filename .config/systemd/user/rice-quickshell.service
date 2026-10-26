@@ -1,6 +1,7 @@
 [Unit]
 Description=Quickshell material desktop shell
-Conflicts=rice-pleamar.service
+PartOf=graphical-session.target
+After=graphical-session.target
 StartLimitIntervalSec=30
 StartLimitBurst=3
 

@@ -57,7 +57,7 @@ ShellRoot {
         applicationGeneration++
         desktopWorker.write(JSON.stringify({query: applicationQuery, generation: applicationGeneration, hidden: hiddenApplications}) + "\n")
     }
-    function launchApplication(id) { Quickshell.execDetached(["python", Paths.helper("desktop.py"), "launch", id]) }
+    function launchApplication(id) { Quickshell.execDetached(["systemd-run", "--user", "--scope", "--slice=app.slice", "--collect", "--quiet", "--", "python", Paths.helper("desktop.py"), "launch", id]) }
     Process {
         id: desktopWorker
         command: ["python", Paths.helper("desktop.py"), "watch"]
@@ -164,6 +164,8 @@ ShellRoot {
 
     property var wallpapers: []
     property string currentWallpaper: ""
+    property string wallpaperImage: ""
+    property bool wallpaperLive: false
     property string wallpaperError: ""
     property bool wallpaperBusy: wallpaperApply.running
     property var wallpaperOrigin: null
@@ -180,7 +182,7 @@ ShellRoot {
         command: ["python", Paths.riceScript("wallpapers.py"), "list"]
         stdout: StdioCollector {
             onStreamFinished: {
-                try { const data = JSON.parse(text); root.wallpapers = data.items; root.currentWallpaper = data.current }
+                try { const data = JSON.parse(text); root.wallpapers = data.items; root.currentWallpaper = data.current; root.wallpaperImage = data.image; root.wallpaperLive = data.live }
                 catch(e) { root.wallpaperError = "Could not read wallpaper folder" }
             }
         }
@@ -197,8 +199,8 @@ ShellRoot {
         path: Paths.wallpaperState
         watchChanges: true
         onFileChanged: reload()
-        onLoaded: { try { const path = JSON.parse(text()).path; if (path) root.currentWallpaper = path } catch(e) {} }
-        onLoadFailed: if (!root.currentWallpaper) root.currentWallpaper = Paths.riceScript("wallpaper.png")
+        onLoaded: { try { const data = JSON.parse(text()); if (data.path) { root.currentWallpaper = data.path; root.wallpaperImage = data.image || data.path; root.wallpaperLive = !!data.live } } catch(e) {} }
+        onLoadFailed: if (!root.currentWallpaper) { root.currentWallpaper = Paths.riceScript("wallpaper.png"); root.wallpaperImage = root.currentWallpaper }
     }
 
     property var resources: ({cpu: null, ramUsed: 0, ramTotal: 0})

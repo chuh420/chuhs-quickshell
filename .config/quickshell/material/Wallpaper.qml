@@ -14,7 +14,15 @@ PanelWindow {
     WlrLayershell.layer: WlrLayer.Bottom
     WlrLayershell.namespace: "material-wallpaper"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
-    readonly property string target: shell.currentWallpaper ? "file://" + shell.currentWallpaper : ""
+    readonly property string target: shell.wallpaperImage ? "file://" + shell.wallpaperImage : ""
+    readonly property bool videoShown: shell.wallpaperLive && !reveal.running && incoming.source.toString() === "" && front.status === Image.Ready
+    property real cover: 1
+    onVideoShownChanged: {
+        if (videoShown) { uncover.restart() }
+        else { uncover.stop(); cover = 1 }
+    }
+    visible: cover > 0
+    NumberAnimation { id: uncover; target: window; property: "cover"; to: 0; duration: 700; easing.type: Easing.InOutQuad }
     property real originX: width / 2
     property real originY: height / 2
     property real radius: 0
@@ -39,6 +47,7 @@ PanelWindow {
         sourceSize.height: window.height
         asynchronous: true
         cache: true
+        opacity: window.cover
         onStatusChanged: if (status === Image.Ready && incoming.source.toString() === source.toString() && !reveal.running) { incoming.source = ""; window.radius = 0 }
     }
     Image {

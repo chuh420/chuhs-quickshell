@@ -2,9 +2,12 @@
 shell_call() {
     /usr/bin/quickshell ipc -c material call shell "$1" 2>/dev/null
 }
-rofi_clipboard() { cliphist list | rofi -dmenu -p 'Clipboard' | cliphist decode | wl-copy; }
+launch_app() {
+    systemd-run --user --scope --slice=app.slice --collect --quiet -- "$@"
+}
+rofi_clipboard() { cliphist list | launch_app rofi -dmenu -p 'Clipboard' | cliphist decode | wl-copy; }
 rofi_power() {
-    choice=$(printf 'Lock\nSleep\nRestart\nPower off' | rofi -dmenu -p 'Session')
+    choice=$(printf 'Lock\nSleep\nRestart\nPower off' | launch_app rofi -dmenu -p 'Session')
     case "$choice" in Lock) "$0" lock ;; Sleep) systemctl suspend ;; Restart) systemctl reboot ;; "Power off") systemctl poweroff ;; esac
 }
 case "$1" in
@@ -19,14 +22,14 @@ case "$1" in
     microphone-mute) shell_call micMute || swayosd-client --input-volume mute-toggle || wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle ;;
     brightness-key-up) shell_call brightnessUp || swayosd-client --brightness +5 || brightnessctl set 5%+ ;;
     brightness-key-down) shell_call brightnessDown || swayosd-client --min-brightness 5 --brightness -5 || brightnessctl -n 5% set 5%- ;;
-    audio) pavucontrol ;;
+    audio) launch_app pavucontrol ;;
     network) shell_call wifi ;;
     bluetooth) shell_call bluetooth ;;
     clipboard) shell_call clipboard || rofi_clipboard ;;
-    lock) shell_call close; pidof hyprlock >/dev/null || hyprlock ;;
+    lock) shell_call close; pidof hyprlock >/dev/null || launch_app hyprlock ;;
     suspend) systemctl suspend ;;
     power) shell_call power || rofi_power ;;
-    screenshot) shell_call close; region=$(slurp -b '#1d2021cc' -c '#a9b665' -w 2) || exit; mkdir -p "$HOME/Pictures/Screenshots"; file="$HOME/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png"; grim -g "$region" "$file" && satty --filename "$file" --copy-command wl-copy ;;
+    screenshot) shell_call close; region=$(launch_app slurp -b '#1d2021cc' -c '#a9b665' -w 2) || exit; mkdir -p "$HOME/Pictures/Screenshots"; file="$HOME/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png"; grim -g "$region" "$file" && launch_app satty --filename "$file" --copy-command wl-copy ;;
     screenshot-output) mkdir -p "$HOME/Pictures/Screenshots"; file="$HOME/Pictures/Screenshots/$(date +%Y-%m-%d_%H-%M-%S).png"; grim "$file" && wl-copy < "$file" ;;
     wallpaper) shell_call wallpapers ;;
     osd) /usr/bin/quickshell ipc -c material call shell osd "$2" "$3" 2>/dev/null ;;

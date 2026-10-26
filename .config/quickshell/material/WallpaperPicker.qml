@@ -10,7 +10,7 @@ ColumnLayout {
         ColumnLayout {
             spacing: 6
             Text { text: "wallpapers"; font.family: Theme.font; font.pixelSize: 26; color: Theme.text }
-            Text { text: view.shell.wallpapers.length + " images · Pictures/Wallpapers"; font.family: Theme.font; font.pixelSize: 11; color: Theme.muted }
+            Text { text: view.shell.wallpapers.filter(w => !w.live).length + " images · " + view.shell.wallpapers.filter(w => w.live).length + " live · Pictures/Wallpapers"; font.family: Theme.font; font.pixelSize: 11; color: Theme.muted }
         }
         Item { Layout.fillWidth: true }
         Chip { label: "refresh"; onClicked: view.shell.refreshWallpapers() }
@@ -76,6 +76,17 @@ ColumnLayout {
                     font.pixelSize: 28
                     opacity: preview.status === Image.Ready ? 0 : 1
                     Behavior on opacity { NumberAnimation { duration: Theme.normal } }
+                }
+                Rectangle {
+                    visible: tile.modelData.live === true
+                    z: 2
+                    anchors { top: parent.top; right: parent.right; margins: 6 }
+                    width: badge.implicitWidth + 14
+                    height: badge.implicitHeight + 6
+                    radius: height / 2
+                    color: Theme.surface
+                    opacity: 0.92
+                    Text { id: badge; anchors.centerIn: parent; text: "live"; font.family: Theme.font; font.pixelSize: 10; color: Theme.green }
                 }
                 Image {
                     id: preview
