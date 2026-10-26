@@ -1,0 +1,15 @@
+[Unit]
+Description=Rice live wallpaper player
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionPathExists=%h/.local/state/rice/live.env
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.local/state/rice/live.env
+ExecStart=/usr/bin/python %h/.config/rice/live-wallpaper.py
+Restart=on-failure
+RestartSec=3
+Nice=15
+CPUWeight=20
+IOWeight=20
